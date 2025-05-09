@@ -1,0 +1,4 @@
+{
+    "entrypoint": "src/main.js",
+    "flag1": "foo"
+}
