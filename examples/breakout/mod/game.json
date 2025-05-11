@@ -1,4 +1,5 @@
 {
+    "identifier": "xyz.shantaram.tetron-demo-breakout",
     "entrypoint": "main.js",
     "flag1": "bar"
 }

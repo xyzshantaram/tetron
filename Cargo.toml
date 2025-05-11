@@ -7,6 +7,7 @@ edition = "2024"
 anyhow = "1.0.98"
 bincode = "2.0.1"
 clap = { version = "4.5.37", features = ["derive"] }
+dirs = "6.0.0"
 rusqlite = "0.35.0"
 sdl2 = { version = "0.37.0", features = [
     "gfx",
@@ -18,6 +19,7 @@ sdl2 = { version = "0.37.0", features = [
 ] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
+stupid-simple-kv = "0.2.5"
 thiserror = "2.0.12"
 vfs = "0.12.1"
 zip = "2.6.1"
