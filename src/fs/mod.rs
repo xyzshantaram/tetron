@@ -3,6 +3,7 @@ use std::io;
 #[derive(Debug)]
 pub enum FsError {
     NotFound,
+    ReadError(String),
     Io(io::Error),
 }
 
@@ -23,6 +24,7 @@ impl std::fmt::Display for FsError {
         match self {
             FsError::NotFound => write!(f, "Resource not found"),
             FsError::Io(e) => write!(f, "I/O error: {e}"),
+            FsError::ReadError(s) => write!(f, "Error reading file: {s}"),
         }
     }
 }
@@ -40,6 +42,12 @@ pub trait SimpleFS: Send + Sync {
     fn open_file(&self, path: &str) -> Result<Vec<u8>, FsError>;
     fn metadata(&self, path: &str) -> Result<FileMetadata, FsError>;
     fn exists(&self, path: &str) -> bool;
+
+    fn read_text_file(&self, path: &str) -> Result<String, FsError> {
+        let bytes = self.open_file(path)?;
+        String::from_utf8(bytes)
+            .map_err(|_| FsError::ReadError(format!("Error converting {path} as UTF-8")))
+    }
 }
 
 /// Normalize a path: always forward slash, no leading or trailing slash unless root.
