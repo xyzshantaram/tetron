@@ -1,4 +1,7 @@
 {
-    "entrypoint": "src/main.js",
-    "flag1": "foo"
+    "identifier": "xyz.shantaram.tetron-demo-breakout",
+    "entrypoint": "main.js",
+    "sdl:width": 800,
+    "sdl:height": 600,
+    "sdl:title": "Breakout"
 }
