@@ -22,9 +22,9 @@ impl From<zip::result::ZipError> for FsError {
 impl std::fmt::Display for FsError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FsError::NotFound => write!(f, "Resource not found"),
-            FsError::Io(e) => write!(f, "I/O error: {e}"),
-            FsError::ReadError(s) => write!(f, "Error reading file: {s}"),
+            FsError::NotFound => write!(f, "SimpleFs: Resource not found"),
+            FsError::Io(e) => write!(f, "SimpleFs: I/O error: {e}"),
+            FsError::ReadError(s) => write!(f, "SimpleFs: Error reading file: {s}"),
         }
     }
 }
