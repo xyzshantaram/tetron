@@ -15,6 +15,7 @@ pub fn flags_module(flags: Rc<RefCell<Kv>>) -> Rc<Module> {
     FuncRegistration::new("set_flag")
         .in_internal_namespace()
         .with_purity(false)
+        .with_namespace(rhai::FnNamespace::Internal)
         .with_volatility(false)
         .set_into_module(
             &mut module,
@@ -39,6 +40,7 @@ pub fn flags_module(flags: Rc<RefCell<Kv>>) -> Rc<Module> {
         .in_internal_namespace()
         .with_purity(false)
         .with_volatility(false)
+        .with_namespace(rhai::FnNamespace::Internal)
         .set_into_module(
             &mut module,
             move |k: Dynamic| -> Result<Dynamic, Box<EvalAltResult>> {
@@ -63,10 +65,11 @@ pub fn config_module(config: Rc<Kv>) -> Rc<Module> {
     let mut module = Module::new();
     let config_getter = config.clone();
 
-    FuncRegistration::new("get_flag")
+    FuncRegistration::new("get")
         .in_internal_namespace()
         .with_purity(false)
         .with_volatility(false)
+        .with_namespace(rhai::FnNamespace::Internal)
         .set_into_module(
             &mut module,
             move |k: Dynamic| -> Result<Dynamic, Box<EvalAltResult>> {
