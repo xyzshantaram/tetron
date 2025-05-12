@@ -25,13 +25,13 @@ impl DiskFs {
 #[cfg(not(target_arch = "wasm32"))]
 impl SimpleFS for DiskFs {
     fn read_dir(&self, path: &str) -> Result<Vec<String>, FsError> {
-        let path = normalize_path(path);
-        let real = self.base.join(path);
+        let normalized = normalize_path(path);
+        let real = self.base.join(normalized.clone());
         let mut entries = Vec::new();
         for entry in fs::read_dir(&real).map_err(FsError::Io)? {
             let e = entry.map_err(FsError::Io)?;
             if let Some(name) = e.file_name().to_str() {
-                let sub = join_path(path, name);
+                let sub = join_path(&normalized, name);
                 entries.push(sub);
             }
         }

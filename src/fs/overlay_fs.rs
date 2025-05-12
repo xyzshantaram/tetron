@@ -21,7 +21,7 @@ impl SimpleFS for OverlayFS {
         let mut entries_found = false;
 
         for fs in &self.layers {
-            if let Ok(entries) = fs.read_dir(path) {
+            if let Ok(entries) = fs.read_dir(&path) {
                 for entry in entries {
                     entries_found = true;
                     all.insert(entry);
@@ -41,7 +41,7 @@ impl SimpleFS for OverlayFS {
     fn open_file(&self, path: &str) -> Result<Vec<u8>, FsError> {
         let path = normalize_path(path);
         for fs in &self.layers {
-            if let Ok(file) = fs.open_file(path) {
+            if let Ok(file) = fs.open_file(&path) {
                 return Ok(file);
             }
         }
@@ -51,7 +51,7 @@ impl SimpleFS for OverlayFS {
     fn metadata(&self, path: &str) -> Result<FileMetadata, FsError> {
         let path = normalize_path(path);
         for fs in &self.layers {
-            if let Ok(meta) = fs.metadata(path) {
+            if let Ok(meta) = fs.metadata(&path) {
                 return Ok(meta);
             }
         }
@@ -60,6 +60,6 @@ impl SimpleFS for OverlayFS {
 
     fn exists(&self, path: &str) -> bool {
         let path = normalize_path(path);
-        self.layers.iter().any(|fs| fs.exists(path))
+        self.layers.iter().any(|fs| fs.exists(&path))
     }
 }

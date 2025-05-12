@@ -52,13 +52,18 @@ pub trait SimpleFS: Send + Sync {
 
 /// Normalize a path: always forward slash, no leading or trailing slash unless root.
 /// Root is always normalized as an empty string, not "/".
-pub(crate) fn normalize_path(path: &str) -> &str {
-    let trimmed = path.trim_matches('/');
-    if trimmed.is_empty() {
-        "" // Root
-    } else {
-        trimmed
+pub fn normalize_path(path: &str) -> String {
+    let mut parts = Vec::new();
+    for part in path.split('/') {
+        match part {
+            "" | "." => continue,
+            ".." => {
+                parts.pop();
+            }
+            _ => parts.push(part),
+        }
     }
+    parts.join("/")
 }
 
 /// Joins two forward-slash paths where lhs may be empty (root), ensuring single slash between.

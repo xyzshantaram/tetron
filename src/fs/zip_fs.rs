@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::{BTreeSet, HashMap};
 use std::io::{Cursor, Read};
 
@@ -16,9 +15,9 @@ struct ZipEntry {
 pub struct ZipFS {
     buf: Vec<u8>,
     /// Map of path (relative to root_prefix) -> zip entry (file or directory).
-    entries: HashMap<Cow<'static, str>, ZipEntry>,
+    entries: HashMap<String, ZipEntry>,
     /// Directory structure: key is a normalized directory path (e.g., "", "subdir"), value is set of names (file or dir names) under that dir.
-    dir_map: HashMap<Cow<'static, str>, BTreeSet<Cow<'static, str>>>,
+    dir_map: HashMap<String, BTreeSet<String>>,
 }
 
 impl ZipFS {
@@ -34,8 +33,8 @@ impl ZipFS {
         let root_prefix = Self::detect_and_strip_root_prefix(&names);
 
         // Core maps
-        let mut entries: HashMap<Cow<'static, str>, ZipEntry> = HashMap::new();
-        let mut dir_map: HashMap<Cow<'static, str>, BTreeSet<Cow<'static, str>>> = HashMap::new();
+        let mut entries: HashMap<String, ZipEntry> = HashMap::new();
+        let mut dir_map: HashMap<String, BTreeSet<String>> = HashMap::new();
 
         // For normalization
         let prefix_len = root_prefix.as_ref().map(|s| s.len()).unwrap_or(0);
@@ -45,7 +44,7 @@ impl ZipFS {
             let name = &file.name()[prefix_len..]; // strip root prefix, if any
             let norm_path = normalize_path(name); // always no leading/trailing
             let is_dir = file.name().ends_with('/');
-            let norm: Cow<'static, str> = Cow::Owned(norm_path.to_string());
+            let norm: String = norm_path.to_string();
             if !norm.is_empty() {
                 // skip synthetic root
                 entries.insert(
@@ -62,12 +61,9 @@ impl ZipFS {
             let (parent, entry_name) = if let Some(pos) = norm.rfind('/') {
                 let parent = &norm[..pos];
                 let entry_name = &norm[pos + 1..];
-                (
-                    Cow::Owned(parent.to_string()),
-                    Cow::Owned(entry_name.to_string()),
-                )
+                (parent.to_string(), entry_name.to_string())
             } else {
-                (Cow::Owned(String::new()), norm.clone())
+                (String::new(), norm.clone())
             };
             dir_map.entry(parent).or_default().insert(entry_name);
         }
@@ -117,13 +113,13 @@ impl ZipFS {
 
 impl SimpleFS for ZipFS {
     fn read_dir(&self, path: &str) -> Result<Vec<String>, FsError> {
-        let path = normalize_path(path);
+        let normalized = normalize_path(path);
         // "" is root.
-        let entry = self.dir_map.get(path);
+        let entry = self.dir_map.get(&normalized);
         if let Some(set) = entry {
             let mut out = Vec::new();
             for name in set {
-                let full = join_path(path, name);
+                let full = join_path(&normalized, name);
                 out.push(full);
             }
             Ok(out)
@@ -134,7 +130,7 @@ impl SimpleFS for ZipFS {
 
     fn open_file(&self, path: &str) -> Result<Vec<u8>, FsError> {
         let path = normalize_path(path);
-        match self.entries.get(path) {
+        match self.entries.get(&path) {
             Some(zip_entry) if !zip_entry.is_dir => {
                 let mut archive = self.open_archive()?;
                 let mut file = archive.by_index(zip_entry.index).map_err(FsError::from)?;
@@ -148,7 +144,7 @@ impl SimpleFS for ZipFS {
 
     fn metadata(&self, path: &str) -> Result<FileMetadata, FsError> {
         let path = normalize_path(path);
-        match self.entries.get(path) {
+        match self.entries.get(&path) {
             Some(e) => Ok(FileMetadata {
                 len: e.len,
                 is_dir: e.is_dir,
@@ -159,6 +155,6 @@ impl SimpleFS for ZipFS {
 
     fn exists(&self, path: &str) -> bool {
         let path = normalize_path(path);
-        self.entries.contains_key(path)
+        self.entries.contains_key(&path)
     }
 }
