@@ -1,8 +1,8 @@
 use crate::TetronError;
 use crate::fs::{SimpleFS, overlay_fs::OverlayFS, to_vfs_layer};
-use crate::scripting::TetronJs;
+use crate::scripting::TetronScripting;
 use crate::sdl::TetronSdlHandle;
-use crate::utils::normalize_path;
+use crate::utils::resolve_physical_fs_path;
 use sdl2::{event::Event, keyboard::Keycode};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -14,12 +14,12 @@ pub use args::TetronArgs;
 
 pub struct Game {
     path: PathBuf,
-    fs: OverlayFS,
+    fs: Rc<OverlayFS>,
     pub(crate) config: Rc<Kv>,
     pub(crate) flags: Rc<RefCell<Kv>>,
     sdl: TetronSdlHandle,
     pub(crate) identifier: String,
-    js: TetronJs,
+    scripting: TetronScripting,
 }
 
 impl TryFrom<TetronArgs> for Game {
@@ -27,7 +27,7 @@ impl TryFrom<TetronArgs> for Game {
 
     fn try_from(args: TetronArgs) -> Result<Self, Self::Error> {
         let game_path = match args.game {
-            Some(p) => normalize_path(&p)?,
+            Some(p) => resolve_physical_fs_path(&p)?,
             None => {
                 eprintln!("tetron: error: No game supplied");
                 process::exit(1);
@@ -76,17 +76,17 @@ impl TryFrom<TetronArgs> for Game {
             .unwrap_or(identifier.clone().into())
             .try_into()?;
         let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
-        let js = TetronJs::new(flags.clone(), config.clone())
-            .map_err(|e| TetronError::JsError(e.to_string()))?;
 
+        let fs_rc = Rc::new(fs);
+        let scripting = TetronScripting::new(fs_rc.clone(), flags.clone(), config.clone())?;
         Ok(Self {
             path: game_path,
-            fs,
+            fs: fs_rc,
             config,
             sdl,
             identifier,
-            js,
             flags,
+            scripting,
         })
     }
 }
@@ -96,7 +96,9 @@ impl Game {
         Ok(self.fs.read_text_file(path)?)
     }
 
-    fn update(&mut self, delta: &f32) {}
+    fn update(&mut self, delta: &f32) {
+        todo!()
+    }
 
     fn draw(&mut self) {}
 
