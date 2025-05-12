@@ -28,7 +28,7 @@ impl From<TetronError> for Box<EvalAltResult> {
             )),
             TetronError::RhaiRuntime(e, pos) => Box::new(EvalAltResult::ErrorRuntime(
                 format!("Runtime error: {e}").into(),
-                pos.unwrap_or_default(),
+                pos.unwrap_or(Position::NONE),
             )),
         }
     }
@@ -50,8 +50,8 @@ impl std::fmt::Display for TetronError {
             }
             TetronError::RhaiRuntime(e, pos) => write!(
                 f,
-                "tetron: runtime error: {e} at position {}",
-                pos.unwrap_or_default()
+                "tetron: runtime error: '{e}' at position {}",
+                pos.unwrap_or(Position::NONE)
             ),
         }
     }
