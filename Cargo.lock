@@ -917,7 +917,6 @@ dependencies = [
  "clap",
  "dirs",
  "rhai",
- "rusqlite",
  "sdl2",
  "serde_json",
  "stupid-simple-kv",
