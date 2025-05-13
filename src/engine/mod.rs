@@ -16,7 +16,6 @@ pub struct Game {
     path: PathBuf,
     fs: Rc<OverlayFS>,
     pub(crate) config: Rc<Kv>,
-    pub(crate) flags: Rc<RefCell<Kv>>,
     sdl: TetronSdlHandle,
     pub(crate) identifier: String,
     scripting: TetronScripting,
@@ -79,26 +78,20 @@ impl TryFrom<TetronArgs> for Game {
 
         let fs_rc = Rc::new(fs);
         let scripting = TetronScripting::new(fs_rc.clone(), flags.clone(), config.clone())?;
+
         Ok(Self {
             path: game_path,
             fs: fs_rc,
             config,
             sdl,
             identifier,
-            flags,
             scripting,
         })
     }
 }
 
 impl Game {
-    fn read_text_file(&self, path: &str) -> Result<String, anyhow::Error> {
-        Ok(self.fs.read_text_file(path)?)
-    }
-
-    fn update(&mut self, delta: &f32) {
-        todo!()
-    }
+    fn update(&mut self, delta: &f32) {}
 
     fn draw(&mut self) {}
 
