@@ -1,16 +1,26 @@
+use crate::{TetronError, fs::overlay_fs::OverlayFS};
 use kv::{config_module, flags_module};
+use module_resolver::TetronModuleResolver;
 use rhai::{Engine, Module};
 use std::{cell::RefCell, rc::Rc};
 use stupid_simple_kv::Kv;
+use utils::setup_native_module;
 
 mod kv;
 mod module_resolver;
-
-use crate::{TetronError, fs::overlay_fs::OverlayFS};
-use module_resolver::TetronModuleResolver;
+mod utils;
 
 pub struct TetronScripting {
     rhai: rhai::Engine,
+}
+
+type NativeModule = (&'static str, Rc<Module>);
+fn tetron_modules(
+    flags: Rc<RefCell<Kv>>,
+    config: Rc<Kv>,
+) -> Result<Vec<NativeModule>, TetronError> {
+    let modules: Vec<NativeModule> = vec![flags_module(flags), config_module(config)];
+    Ok(modules)
 }
 
 impl TetronScripting {
@@ -20,18 +30,24 @@ impl TetronScripting {
         config: Rc<Kv>,
     ) -> Result<TetronScripting, TetronError> {
         let mut engine = Engine::new();
-        let mut module = Module::new();
+        let mut global = Module::new();
 
-        let resolver = TetronModuleResolver::new(fs.clone());
-        let flags = flags_module(flags);
-        let config = config_module(config);
+        let mut resolver = TetronModuleResolver::new(fs.clone());
 
-        module.set_sub_module("flags", flags);
-        module.set_sub_module("config", config);
+        let modules = tetron_modules(flags, config)?;
+        for (name, module) in modules {
+            setup_native_module(&mut global, name, module, &mut resolver)?;
+        }
 
-        resolver.register_native_module("tetron", Rc::new(module))?;
+        resolver.register_native_module("tetron", Rc::new(global))?;
         engine.set_module_resolver(resolver);
 
         Ok(Self { rhai: engine })
+    }
+
+    pub fn eval<T: Clone + 'static>(&self, source: &str) -> Result<T, TetronError> {
+        self.rhai
+            .eval::<T>(source)
+            .map_err(|e| TetronError::RhaiRuntime(e.to_string(), None))
     }
 }
