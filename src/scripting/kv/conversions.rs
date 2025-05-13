@@ -69,7 +69,7 @@ pub fn to_kv_value(value: &Dynamic) -> Result<KvValue, String> {
 
 pub fn rhai_dyn_to_kvkey(value: Dynamic) -> Result<KvKey, Box<EvalAltResult>> {
     let arr = value.as_array_ref().map_err(|e| {
-        TetronError::RhaiRuntime(format!("set_flag: Expected array, got: {e}").into(), None)
+        TetronError::RhaiRuntime(format!("set_flag: Expected array, got: {e}"), None)
     })?;
 
     if arr.len() > 16 {
