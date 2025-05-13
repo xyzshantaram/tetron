@@ -46,7 +46,7 @@ impl TryFrom<TetronArgs> for Game {
 
         let identifier: String = config
             .get(&("identifier",))?
-            .ok_or(TetronError::IdentifierNotFound)?
+            .ok_or(TetronError::RequiredConfigNotFound("identifier".into()))?
             .try_into()?;
 
         // TODO: implement wasm backend (probably use IndexedDB or localstorage)
@@ -95,8 +95,18 @@ impl Game {
 
     fn draw(&mut self) {}
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), TetronError> {
         let mut last_frame = Instant::now();
+
+        let entrypoint: String = self
+            .config
+            .get(&("entrypoint",).to_key())?
+            .ok_or(TetronError::RequiredConfigNotFound("entrypoint".into()))?
+            .try_into()?;
+
+        self.scripting
+            .eval::<()>(&self.fs.read_text_file(&entrypoint)?)?;
+
         'running: loop {
             let now = Instant::now();
             let delta = now.duration_since(last_frame);
@@ -121,5 +131,7 @@ impl Game {
             self.draw();
             self.sdl.canvas.present();
         }
+
+        Ok(())
     }
 }
