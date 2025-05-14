@@ -1,4 +1,7 @@
-use super::{NativeModule, utils::register_fn};
+use super::{
+    NativeModule,
+    utils::{FnOpts, register_fn},
+};
 use crate::TetronError;
 use rhai::{Engine, Module, Scope};
 use std::rc::Rc;
@@ -18,7 +21,7 @@ fn error(s) {
 }
 "#;
 
-fn logger(scope: String, value: String) {
+fn logger(scope: &str, value: &str) {
     if scope == "info" {
         println!("tetron::log {} {value}", scope.to_ascii_uppercase());
     } else {
@@ -38,7 +41,7 @@ pub fn log_module(engine: &mut Engine) -> Result<NativeModule, TetronError> {
         &mut module,
         "__tetron_logger_internal",
         logger,
-        Some((false, false, true)),
+        FnOpts::new().global(),
     );
 
     Ok(("log", Rc::new(module)))

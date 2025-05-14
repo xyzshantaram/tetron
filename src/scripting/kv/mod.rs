@@ -1,4 +1,7 @@
-use super::{NativeModule, utils::register_fn};
+use super::{
+    NativeModule,
+    utils::{FnOpts, register_fn},
+};
 use crate::TetronError;
 use conversions::{from_kv_value, rhai_dyn_to_kvkey, to_kv_value};
 use rhai::{Dynamic, EvalAltResult, Module};
@@ -40,8 +43,8 @@ pub fn flags_module(flags: Rc<RefCell<Kv>>) -> NativeModule {
         Ok(v.map(|val| from_kv_value(&val)).unwrap_or(Dynamic::UNIT))
     };
 
-    register_fn(&mut module, "get_flag", getter, None);
-    register_fn(&mut module, "set_flag", setter, None);
+    register_fn(&mut module, "get_flag", getter, &FnOpts::default());
+    register_fn(&mut module, "set_flag", setter, FnOpts::new().volatile());
 
     ("flags", Rc::new(module))
 }
@@ -58,6 +61,6 @@ pub fn config_module(config: Rc<Kv>) -> NativeModule {
         Ok(v.map(|val| from_kv_value(&val)).unwrap_or(Dynamic::UNIT))
     };
 
-    register_fn(&mut module, "get", getter, None);
+    register_fn(&mut module, "get", getter, &FnOpts::default());
     ("config", Rc::new(module))
 }

@@ -6,6 +6,47 @@ use crate::TetronError;
 
 use super::module_resolver::TetronModuleResolver;
 
+#[derive(Debug, Clone)]
+pub struct FnOpts {
+    pure: bool,
+    volatile: bool,
+    global: bool,
+}
+
+impl Default for FnOpts {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FnOpts {
+    pub fn new() -> Self {
+        Self {
+            pure: true,
+            volatile: false,
+            global: false,
+        }
+    }
+
+    /** A function marked global will not need namespacing to be called. See __tetron_logger_internal. */
+    pub fn global(&mut self) -> &mut Self {
+        self.global = true;
+        self
+    }
+
+    /** A volatile function may return different results for the same set of arguments. */
+    pub fn volatile(&mut self) -> &mut Self {
+        self.volatile = true;
+        self
+    }
+
+    /** An impure function is one that modifies its arguments. */
+    pub fn impure(&mut self) -> &mut Self {
+        self.pure = false;
+        self
+    }
+}
+
 pub fn setup_native_module(
     global: &mut Module,
     name: &str,
@@ -21,19 +62,23 @@ pub fn register_fn<A: 'static, const N: usize, const X: bool, R, const F: bool, 
     module: &mut Module,
     name: &str,
     fun: FN,
-    pvg: Option<(bool, bool, bool)>,
+    opts: &FnOpts,
 ) where
     R: Variant + Clone,
     FN: RhaiNativeFunc<A, N, X, R, F> + 'static,
 {
-    let (pure, volatile, global) = pvg.unwrap_or((false, false, false));
+    let FnOpts {
+        pure,
+        volatile,
+        global,
+    } = opts;
     FuncRegistration::new(name)
-        .with_purity(pure)
-        .with_namespace(if global {
+        .with_purity(*pure)
+        .with_namespace(if *global {
             FnNamespace::Global
         } else {
             FnNamespace::Internal
         })
-        .with_volatility(volatile)
+        .with_volatility(*volatile)
         .set_into_module(module, fun);
 }
