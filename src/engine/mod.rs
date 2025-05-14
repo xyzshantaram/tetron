@@ -6,19 +6,59 @@ use crate::utils::resolve_physical_fs_path;
 use sdl2::{event::Event, keyboard::Keycode};
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::{path::PathBuf, process, time::Instant};
-use stupid_simple_kv::{IntoKey, Kv, MemoryBackend, SqliteBackend};
+use std::{process, time::Instant};
+use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
 
 mod args;
 pub use args::TetronArgs;
 
 pub struct Game {
-    path: PathBuf,
     fs: Rc<OverlayFS>,
     pub(crate) config: Rc<Kv>,
     sdl: TetronSdlHandle,
     pub(crate) identifier: String,
     scripting: TetronScripting,
+}
+
+impl Game {
+    fn new<F>(fs: Rc<OverlayFS>, backend_factory: F) -> Result<Self, anyhow::Error>
+    where
+        F: FnOnce(&str) -> Result<Box<dyn KvBackend>, anyhow::Error>,
+    {
+        let json = fs.read_text_file("game.json")?;
+        let config = Rc::new(Kv::from_json_string(Box::new(MemoryBackend::new()), json)?);
+
+        let identifier: String = config
+            .get(&("identifier",))?
+            .ok_or(TetronError::RequiredConfigNotFound("identifier".into()))?
+            .try_into()?;
+
+        let flags = Rc::new(RefCell::new(Kv::new(backend_factory(&identifier)?)));
+
+        let width: i64 = config
+            .get(&("sdl", "width").to_key())?
+            .unwrap_or(800i64.into())
+            .try_into()?;
+        let height: i64 = config
+            .get(&("sdl", "height").to_key())?
+            .unwrap_or(600i64.into())
+            .try_into()?;
+        let title: String = config
+            .get(&("sdl", "title").to_key())?
+            .unwrap_or(identifier.clone().into())
+            .try_into()?;
+        let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
+
+        let scripting = TetronScripting::new(fs.clone(), flags.clone(), config.clone())?;
+
+        Ok(Self {
+            fs,
+            config,
+            sdl,
+            identifier,
+            scripting,
+        })
+    }
 }
 
 impl TryFrom<TetronArgs> for Game {
@@ -41,52 +81,15 @@ impl TryFrom<TetronArgs> for Game {
 
         let fs = OverlayFS::from_layers(layers);
 
-        let json = fs.read_text_file("game.json")?;
-        let config = Rc::new(Kv::from_json_string(Box::new(MemoryBackend::new()), json)?);
-
-        let identifier: String = config
-            .get(&("identifier",))?
-            .ok_or(TetronError::RequiredConfigNotFound("identifier".into()))?
-            .try_into()?;
-
-        // TODO: implement wasm backend (probably use IndexedDB or localstorage)
-        #[cfg(not(target_arch = "wasm32"))]
-        let backend = {
-            let data = dirs::data_dir().ok_or(TetronError::Other(String::from(
-                "Error getting user data dir",
-            )))?;
-
-            let db_path = data.join("tetron").join(&identifier);
+        let backend_factory = |identifier: &str| -> Result<Box<dyn KvBackend>, anyhow::Error> {
+            let data =
+                dirs::data_dir().ok_or(TetronError::Other("Error getting user data dir".into()))?;
+            let db_path = data.join("tetron").join(identifier);
             std::fs::create_dir_all(&db_path)?;
-            SqliteBackend::file(&db_path.join("flags.db"))?
+            Ok(Box::new(SqliteBackend::file(&db_path.join("flags.db"))?))
         };
 
-        let flags = Rc::new(RefCell::new(Kv::new(Box::new(backend))));
-        let width: i64 = config
-            .get(&("sdl", "width").to_key())?
-            .unwrap_or(800i64.into())
-            .try_into()?;
-        let height: i64 = config
-            .get(&("sdl", "height").to_key())?
-            .unwrap_or(600i64.into())
-            .try_into()?;
-        let title: String = config
-            .get(&("sdl", "title").to_key())?
-            .unwrap_or(identifier.clone().into())
-            .try_into()?;
-        let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
-
-        let fs_rc = Rc::new(fs);
-        let scripting = TetronScripting::new(fs_rc.clone(), flags.clone(), config.clone())?;
-
-        Ok(Self {
-            path: game_path,
-            fs: fs_rc,
-            config,
-            sdl,
-            identifier,
-            scripting,
-        })
+        Self::new(Rc::new(fs), backend_factory)
     }
 }
 
