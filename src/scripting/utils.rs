@@ -4,8 +4,13 @@ use rhai::{FnNamespace, FuncRegistration, Module, RhaiNativeFunc, Variant};
 
 use crate::TetronError;
 
-use super::module_resolver::TetronModuleResolver;
+use super::resolver::TetronModuleResolver;
 
+/**
+ * Defaults to pure, non-volatile, non-global. Volatile means that the function
+ * will always return the same value for the same function. Pure means it doesn't
+ * have any side effects (chiefly modifying its arguments).
+ */
 #[derive(Debug, Clone)]
 pub struct FnOpts {
     pure: bool,
@@ -40,6 +45,7 @@ impl FnOpts {
         self
     }
 
+    #[allow(dead_code)]
     /** An impure function is one that modifies its arguments. */
     pub fn impure(&mut self) -> &mut Self {
         self.pure = false;
