@@ -1,5 +1,3 @@
-#![feature(try_find)]
-
 mod engine;
 mod error;
 mod fs;
