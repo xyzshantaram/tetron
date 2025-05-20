@@ -1,7 +1,8 @@
 use crate::{TetronError, fs::overlay_fs::OverlayFS};
 use kv::{config_module, flags_module};
 use log::log_module;
-use module_resolver::TetronModuleResolver;
+use physics::physics_module;
+use resolver::TetronModuleResolver;
 use rhai::{Engine, Module};
 use std::{cell::RefCell, rc::Rc};
 use stupid_simple_kv::Kv;
@@ -9,7 +10,8 @@ use utils::setup_native_module;
 
 mod kv;
 mod log;
-mod module_resolver;
+mod physics;
+mod resolver;
 mod utils;
 
 pub struct TetronScripting {
@@ -26,6 +28,7 @@ fn tetron_modules(
         flags_module(flags),
         config_module(config),
         log_module(engine)?,
+        physics_module(engine),
     ];
     Ok(modules)
 }
@@ -37,6 +40,7 @@ impl TetronScripting {
         config: Rc<Kv>,
     ) -> Result<TetronScripting, TetronError> {
         let mut engine = Engine::new();
+        engine.set_fast_operators(false);
         let mut global = Module::new();
 
         let mut resolver = TetronModuleResolver::new(fs.clone());
