@@ -48,7 +48,7 @@ fn vec2_div_assign_scalar(a: &mut Vec2, s: f32) {
     *a /= s;
 }
 
-pub fn physics_module(engine: &mut Engine) -> NativeModule {
+pub fn math_module(engine: &mut Engine) -> NativeModule {
     let mut module = Module::new();
 
     engine
@@ -88,5 +88,5 @@ pub fn physics_module(engine: &mut Engine) -> NativeModule {
     module.set_native_fn("normalize", |a: Vec2| Ok(Vec2::normalize(a)));
     module.set_native_fn("dot", |a: Vec2, b: Vec2| Ok(Vec2::dot(a, b)));
 
-    ("physics", Rc::new(module))
+    ("math", Rc::new(module))
 }

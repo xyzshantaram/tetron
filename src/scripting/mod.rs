@@ -1,18 +1,20 @@
 use crate::{TetronError, fs::overlay_fs::OverlayFS};
+use game::game_module;
 use kv::{config_module, flags_module};
 use log::log_module;
-use physics::physics_module;
+use math::math_module;
 use resolver::TetronModuleResolver;
 use rhai::{Engine, Module};
 use std::{cell::RefCell, rc::Rc};
 use stupid_simple_kv::Kv;
 use utils::setup_native_module;
 
+mod game;
 mod kv;
 mod log;
-mod physics;
+mod math;
 mod resolver;
-mod utils;
+pub mod utils;
 
 pub struct TetronScripting {
     rhai: rhai::Engine,
@@ -28,7 +30,8 @@ fn tetron_modules(
         flags_module(flags),
         config_module(config),
         log_module(engine)?,
-        physics_module(engine),
+        math_module(engine),
+        game_module(engine),
     ];
     Ok(modules)
 }
