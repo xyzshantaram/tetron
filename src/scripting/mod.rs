@@ -1,5 +1,4 @@
 use crate::{TetronError, fs::overlay_fs::OverlayFS};
-use game::game_module;
 use kv::{config_module, flags_module};
 use log::log_module;
 use math::math_module;
@@ -30,8 +29,7 @@ fn tetron_modules(
         flags_module(flags),
         config_module(config),
         log_module(engine)?,
-        math_module(engine),
-        game_module(engine),
+        math_module(),
     ];
     Ok(modules)
 }
@@ -44,6 +42,7 @@ impl TetronScripting {
     ) -> Result<TetronScripting, TetronError> {
         let mut engine = Engine::new();
         engine.set_fast_operators(false);
+        engine.set_max_expr_depths(64, 32);
         let mut global = Module::new();
 
         let mut resolver = TetronModuleResolver::new(fs.clone());

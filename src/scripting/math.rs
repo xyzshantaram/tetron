@@ -1,92 +1,51 @@
+use std::f32::consts;
 use std::rc::Rc;
 
-use rhai::{Engine, Module};
-
-use crate::engine::physics::vec2::Vec2;
 use crate::scripting::NativeModule;
+use rhai::Module;
 
-// Operator functions
-fn vec2_add(a: Vec2, b: Vec2) -> Vec2 {
-    a + b
-}
-fn vec2_sub(a: Vec2, b: Vec2) -> Vec2 {
-    a - b
-}
-fn vec2_mul(a: Vec2, b: Vec2) -> Vec2 {
-    a * b
-}
-fn vec2_div(a: Vec2, b: Vec2) -> Vec2 {
-    a / b
-}
-fn vec2_add_scalar(v: Vec2, s: f32) -> Vec2 {
-    v * s
-}
-fn vec2_div_scalar(v: Vec2, s: f32) -> Vec2 {
-    v / s
-}
-fn vec2_neg(v: Vec2) -> Vec2 {
-    -v
-}
-
-// Operator-assign functions
-fn vec2_add_assign(a: &mut Vec2, b: Vec2) {
-    *a += b;
-}
-fn vec2_sub_assign(a: &mut Vec2, b: Vec2) {
-    *a -= b;
-}
-fn vec2_mul_assign(a: &mut Vec2, b: Vec2) {
-    *a *= b;
-}
-fn vec2_div_assign(a: &mut Vec2, b: Vec2) {
-    *a /= b;
-}
-fn vec2_mul_assign_scalar(a: &mut Vec2, s: f32) {
-    *a *= s;
-}
-fn vec2_div_assign_scalar(a: &mut Vec2, s: f32) {
-    *a /= s;
-}
-
-pub fn math_module(engine: &mut Engine) -> NativeModule {
+pub fn math_module() -> NativeModule {
     let mut module = Module::new();
 
-    engine
-        // Binary operators
-        .register_fn("+", vec2_add)
-        .register_fn("+", vec2_add_scalar)
-        .register_fn("-", vec2_neg)
-        .register_fn("-", vec2_sub)
-        .register_fn("*", vec2_mul)
-        .register_fn("/", vec2_div)
-        .register_fn("/", vec2_div_scalar)
-        // <Op>Assign operators
-        .register_fn("+=", vec2_add_assign)
-        .register_fn("-=", vec2_sub_assign)
-        .register_fn("*=", vec2_mul_assign)
-        .register_fn("*=", vec2_mul_assign_scalar)
-        .register_fn("/=", vec2_div_assign)
-        .register_fn("/=", vec2_div_assign_scalar);
+    // Constants
+    module.set_var("PI", consts::PI); // π
+    module.set_var("TAU", consts::TAU); // τ = 2π
+    module.set_var("E", consts::E); // Euler's number
+    module.set_var("TRIG_PI_2", consts::FRAC_PI_2); // π/2
+    module.set_var("TRIG_PI_3", consts::FRAC_PI_3); // π/3
+    module.set_var("TRIG_PI_4", consts::FRAC_PI_4); // π/4
+    module.set_var("TRIG_1_PI", consts::FRAC_1_PI); // 1/π
+    module.set_var("TRIG_2_PI", consts::FRAC_2_PI); // 2/π
+    module.set_var("LN_2", consts::LN_2); // ln(2)
+    module.set_var("LN_10", consts::LN_10); // ln(10)
+    module.set_var("SQRT_2", consts::SQRT_2); // sqrt(2)
+    module.set_var("INV_SQRT_2", consts::FRAC_1_SQRT_2); // 1/sqrt(2)
 
-    module.set_sub_module("Vec2", {
-        let mut sub = Module::new();
-        sub.set_native_fn("create", |x, y| Ok(Vec2::new(x, y)));
-
-        sub.set_native_fn("zero", || Ok(Vec2::ZERO));
-        sub.set_native_fn("one", || Ok(Vec2::ONE));
-        sub
+    // Basic math functions
+    module.set_native_fn("sin", |x: f32| Ok(x.sin()));
+    module.set_native_fn("cos", |x: f32| Ok(x.cos()));
+    module.set_native_fn("tan", |x: f32| Ok(x.tan()));
+    module.set_native_fn("asin", |x: f32| Ok(x.asin()));
+    module.set_native_fn("acos", |x: f32| Ok(x.acos()));
+    module.set_native_fn("atan", |x: f32| Ok(x.atan()));
+    module.set_native_fn("atan2", |y: f32, x: f32| Ok(y.atan2(x)));
+    module.set_native_fn("sqrt", |x: f32| Ok(x.sqrt()));
+    module.set_native_fn("abs", |x: f32| Ok(x.abs()));
+    module.set_native_fn("signum", |x: f32| Ok(x.signum()));
+    module.set_native_fn("min", |a: f32, b: f32| Ok(a.min(b)));
+    module.set_native_fn("max", |a: f32, b: f32| Ok(a.max(b)));
+    module.set_native_fn("clamp", |x: f32, min: f32, max: f32| {
+        Ok(x.min(max).max(min))
     });
+    module.set_native_fn("pow", |x: f32, y: f32| Ok(x.powf(y)));
+    module.set_native_fn("exp", |x: f32| Ok(x.exp()));
+    module.set_native_fn("ln", |x: f32| Ok(x.ln()));
+    module.set_native_fn("floor", |x: f32| Ok(x.floor()));
+    module.set_native_fn("ceil", |x: f32| Ok(x.ceil()));
+    module.set_native_fn("round", |x: f32| Ok(x.round()));
 
-    module
-        .set_custom_type::<Vec2>("Vec2")
-        .set_native_fn("distance", |a: Vec2, b: Vec2| Ok(Vec2::distance(a, b)));
-
-    module.set_native_fn("lerp", |a: Vec2, b: Vec2, t: f32| Ok(Vec2::lerp(a, b, t)));
-    module.set_native_fn("perp", |a: Vec2| Ok(Vec2::perp(a)));
-    module.set_native_fn("length", |a: &Vec2| Ok(Vec2::length(a)));
-    module.set_native_fn("length_sq", |a: &Vec2| Ok(Vec2::length_sq(a)));
-    module.set_native_fn("normalize", |a: Vec2| Ok(Vec2::normalize(a)));
-    module.set_native_fn("dot", |a: Vec2, b: Vec2| Ok(Vec2::dot(a, b)));
+    // Linear interpolation
+    module.set_native_fn("lerp", |a: f32, b: f32, t: f32| Ok((1.0 - t) * a + t * b));
 
     ("math", Rc::new(module))
 }
