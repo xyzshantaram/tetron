@@ -10,6 +10,11 @@ use std::{process, time::Instant};
 use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
 
 mod args;
+mod behaviours;
+pub mod entity;
+pub mod physics;
+pub mod scene;
+pub mod world;
 pub use args::TetronArgs;
 
 pub struct Game {
