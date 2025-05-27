@@ -103,16 +103,6 @@ fn current_log_level() -> String {
     level.as_str().to_lowercase()
 }
 
-#[rune::function(keep)]
-fn is_level_enabled(level: &str) -> bool {
-    if let Some(check_level) = LogLevel::from_str(level) {
-        let current_level = LogLevel::from_str(&current_log_level()).unwrap_or(LogLevel::Info);
-        check_level <= current_level && current_level != LogLevel::Off
-    } else {
-        false
-    }
-}
-
 // Macro helper function to create logging macros
 fn log_macro(
     level: &'static str,
