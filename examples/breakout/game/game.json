@@ -1,6 +1,6 @@
 {
     "identifier": "xyz.shantaram.tetron-demo-breakout",
-    "entrypoint": "src/main.rhai",
+    "entrypoint": "src/main.rn",
     "sdl:width": 800,
     "sdl:height": 600,
     "sdl:title": "Breakout"

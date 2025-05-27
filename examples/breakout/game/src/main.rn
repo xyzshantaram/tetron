@@ -1,0 +1,163 @@
+use tetron::{game::{world, drawable, physics}, log, scene, input};
+
+const BALL_RADIUS = 5;
+const PADDLE_W = 80;
+const PADDLE_H = 10;
+const BRICK_W = 60;
+const BRICK_H = 20;
+const WALL_COLOR = "#333";
+const BRICK_COLOR = "#ff6600";
+
+fn Ball(scene, x, y, vx, vy) {
+    let ball = scene.spawn();
+    ball.attach(drawable::circle(#{ r: BALL_RADIUS, color: "#ffffff" }));
+    ball.attach(physics::new(#{ shape: "circle", r: BALL_RADIUS, x, y, collision: "simulate" }));
+    ball.tag("player");
+    return ball;
+}
+
+fn Wall(scene, x, y, w, h) {
+    let wall = scene.spawn();
+    wall.attach(drawable::rect(#{ color: WALL_COLOR, w, h }));
+    wall.attach(physics::new(#{
+        shape: "rect",
+        w,
+        h,
+        x,
+        y,
+        immovable: true,
+    }));
+    return wall;
+}
+
+fn Brick(scene, x, y) {
+    let brick = scene.spawn();
+    brick.attach(drawable::rect(#{ color: BRICK_COLOR, w: BRICK_W, h: BRICK_H }));
+    let phys = physics::new(#{
+        shape: "rect",
+        w: BRICK_W,
+        h: BRICK_H,
+        x,
+        y,
+        immovable: true,
+    });
+    phys.on(
+        "collide",
+        |ctx, this, other| {
+            if (ctx.entity(other).has_tag("ball")) {
+                ctx.destroy(this);
+            }
+        },
+    );
+    brick.attach(phys);
+    return brick;
+}
+
+// Rust-defined System: Checks if ball goes off screen
+fn out_of_bounds_system(ctx, _dt) {
+    for ball in ctx.query().with_tag("ball") {
+        let pos = ctx.entity(ball).component("tetron:physics").pos;
+        if (pos.y > 480) {
+            log::info("Ball fell off the screen!");
+            ctx.world.load_scene("game_over");
+        }
+    }
+}
+
+fn paddle_input_system(ctx, _dt) {
+    for ent in ctx.query().with_tag("paddle") {
+        let phys = ctx.entity(ent).component("tetron:physics");
+        if (input.key("right")) {
+            phys.apply_force(#{ x: 1, y: 0 });
+        } else if (input.key("left")) {
+            phys.apply_force(#{ x: -1, y: 0 });
+        } else {
+            phys.vel.x = 0;
+        }
+    }
+}
+
+fn Paddle(scene, x, y) {
+    let paddle = scene.spawn();
+    paddle.tag("paddle");
+    paddle.attach(drawable::rect(#{ color: "#007cdf", w: PADDLE_W, h: PADDLE_H }));
+    paddle.attach(
+        physics::new(#{
+            shape: "rect",
+            w: PADDLE_W,
+            h: PADDLE_H,
+            x,
+            y,
+            friction: 0.8,
+            collision: "immovable",
+        }),
+    );
+    return paddle;
+}
+
+fn game_scene() {
+    let scene = scene::new(#{ bg: "#120321", gravity: #{ x: 0, y: 0 } });
+
+    scene.insert(Paddle(scene, 320, 460));
+    scene.insert(Ball(scene, 320, 240, 2, -3));
+
+    scene.insert(Wall(scene, 0, 0, 640, 10));
+    scene.insert(Wall(scene, 0, 0, 10, 480));
+    scene.insert(Wall(scene, 630, 0, 10, 480));
+
+    for row in 0..5 {
+        for col in 0..10 {
+            let x = 20 + col * (BRICK_W + 2);
+            let y = 40 + row * (BRICK_H + 2);
+            scene.insert(Brick(scene, x, y));
+        }
+    }
+
+    scene.system("physics", physics::system());
+    scene.system("input", paddle_input_system);
+    scene.system("out-of-bounds", out_of_bounds_system);
+}
+
+fn menu_input_system(ctx, _dt) {
+    if (input.key_down("space")) {
+        ctx.world.load_scene("main");
+    }
+}
+
+fn menu_scene() {
+    let scene = scene::new(#{ bg: "#000000" });
+
+    let label = scene.spawn();
+    label.attach(
+        drawable::text(#{ text: "Press SPACE to Start", size: 24, color: "#ffffff", x: 200, y: 220 }),
+    );
+
+    scene.system("update", menu_input_system);
+}
+
+fn game_over_input_system(ctx, _dt) {
+    if (input.key_down("r")) {
+        ctx.world.load_scene("main");
+    }
+}
+
+fn game_over_scene() {
+    let scene = scene::new(#{ bg: "#120321" });
+
+    let label = scene.spawn();
+    label.attach(drawable::text(#{ text: "Game Over", size: 32, color: "#ff0000", x: 240, y: 200 }));
+
+    let prompt = scene.spawn();
+    prompt.attach(drawable::text(#{ text: "Press R to Restart", size: 20, color: "#ffffff", x: 230, y: 260 }));
+
+    scene.system("update", game_over_input_system);
+}
+
+// Entry point for Rust to call
+pub fn begin(world) {
+    world.scene("main", game_scene());
+    world.scene("menu", menu_scene());
+    world.scene("game_over", game_over_scene());
+
+    world.load_scene("menu");
+}
