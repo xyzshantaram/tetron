@@ -6,7 +6,7 @@ use std::{
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::fs::{FileMetadata, FsError, SimpleFS, join_path, normalize_path};
+use crate::fs::{FileMetadata, FsError, SimpleFs, join_path, normalize_path};
 
 #[cfg(not(target_arch = "wasm32"))]
 pub struct DiskFs {
@@ -23,7 +23,7 @@ impl DiskFs {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-impl SimpleFS for DiskFs {
+impl SimpleFs for DiskFs {
     fn read_dir(&self, path: &str) -> Result<Vec<String>, FsError> {
         let normalized = normalize_path(path);
         let real = self.base.join(normalized.clone());

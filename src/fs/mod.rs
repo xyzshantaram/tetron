@@ -37,7 +37,7 @@ pub struct FileMetadata {
     pub is_dir: bool,
 }
 
-pub trait SimpleFS: Send + Sync {
+pub trait SimpleFs: Send + Sync {
     fn read_dir(&self, path: &str) -> Result<Vec<String>, FsError>;
     fn open_file(&self, path: &str) -> Result<Vec<u8>, FsError>;
     fn metadata(&self, path: &str) -> Result<FileMetadata, FsError>;
@@ -88,14 +88,14 @@ use std::{
 };
 
 #[cfg(not(target_arch = "wasm32"))]
-use crate::fs::{disk_fs::DiskFs, zip_fs::ZipFS};
+use crate::fs::{disk_fs::DiskFs, zip_fs::ZipFs};
 
 #[cfg(not(target_arch = "wasm32"))]
-pub(crate) fn to_vfs_layer(layer: &PathBuf) -> Result<Box<dyn SimpleFS>, anyhow::Error> {
+pub(crate) fn to_vfs_layer(layer: &PathBuf) -> Result<Box<dyn SimpleFs>, anyhow::Error> {
     if layer.extension().is_some_and(|v| v == "zip") {
         let mut buf: Vec<u8> = Vec::new();
         File::open(layer)?.read_to_end(&mut buf)?;
-        Ok(Box::new(ZipFS::new(buf)?))
+        Ok(Box::new(ZipFs::new(buf)?))
     } else {
         fs::metadata(layer)?;
         Ok(Box::new(DiskFs::new(layer)))

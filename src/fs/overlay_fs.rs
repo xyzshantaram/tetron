@@ -1,20 +1,20 @@
 use std::collections::HashSet;
 
-use crate::fs::{FileMetadata, FsError, SimpleFS, normalize_path};
+use crate::fs::{FileMetadata, FsError, SimpleFs, normalize_path};
 
-pub struct OverlayFS {
-    layers: Vec<Box<dyn SimpleFS>>,
+pub struct OverlayFs {
+    layers: Vec<Box<dyn SimpleFs>>,
 }
 
-impl OverlayFS {
-    pub fn from_layers(layers: Vec<Box<dyn SimpleFS>>) -> Self {
+impl OverlayFs {
+    pub fn from_layers(layers: Vec<Box<dyn SimpleFs>>) -> Self {
         let mut layers = layers;
         layers.reverse(); // Last is topmost
-        OverlayFS { layers }
+        OverlayFs { layers }
     }
 }
 
-impl SimpleFS for OverlayFS {
+impl SimpleFs for OverlayFs {
     fn read_dir(&self, path: &str) -> Result<Vec<String>, FsError> {
         let path = normalize_path(path);
         let mut all: HashSet<String> = HashSet::new();

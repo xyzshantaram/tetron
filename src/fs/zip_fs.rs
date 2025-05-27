@@ -3,7 +3,7 @@ use std::io::{Cursor, Read};
 
 use zip::ZipArchive;
 
-use crate::fs::{FileMetadata, FsError, SimpleFS, join_path, normalize_path};
+use crate::fs::{FileMetadata, FsError, SimpleFs, join_path, normalize_path};
 
 #[derive(Clone, Debug)]
 struct ZipEntry {
@@ -12,7 +12,7 @@ struct ZipEntry {
     len: u64,
 }
 
-pub struct ZipFS {
+pub struct ZipFs {
     buf: Vec<u8>,
     /// Map of path (relative to root_prefix) -> zip entry (file or directory).
     entries: HashMap<String, ZipEntry>,
@@ -20,7 +20,7 @@ pub struct ZipFS {
     dir_map: HashMap<String, BTreeSet<String>>,
 }
 
-impl ZipFS {
+impl ZipFs {
     pub fn new(buf: Vec<u8>) -> Result<Self, anyhow::Error> {
         let mut archive = ZipArchive::new(Cursor::new(&buf))?;
         // Gather all entry names. Find a root prefix if one exists.
@@ -111,7 +111,7 @@ impl ZipFS {
     }
 }
 
-impl SimpleFS for ZipFS {
+impl SimpleFs for ZipFs {
     fn read_dir(&self, path: &str) -> Result<Vec<String>, FsError> {
         let normalized = normalize_path(path);
         // "" is root.
