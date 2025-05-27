@@ -4,9 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-rhai = { version = "1.21.0", features = ["default", "internals"] }
 anyhow = "1.0.98"
-stupid-simple-kv = "0.3.2"
+stupid-simple-kv = "0.3.3"
 clap = { version = "4.5.37", features = ["derive"] }
 dirs = "6.0.0"
 sdl2 = { version = "0.37.0", features = [
@@ -18,3 +17,4 @@ sdl2 = { version = "0.37.0", features = [
 ] }
 zip = "2.6.1"
 serde_json = "1.0.140"
+rune = "0.14.0"
