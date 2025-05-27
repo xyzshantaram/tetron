@@ -1,20 +1,30 @@
 use std::{
+    path::Path,
     rc::Rc,
     sync::{Arc, RwLock},
 };
 
-use rune::{Context, Module, runtime::RuntimeContext};
+use rune::{
+    Context, Diagnostics, FromValue, Module, Source, Sources, ToTypeHash, Vm,
+    runtime::RuntimeContext,
+    termcolor::{ColorChoice, StandardStream},
+};
+use source_loader::SimpleFsSourceLoader;
 use stupid_simple_kv::Kv;
 
-use crate::{TetronError, engine, fs::overlay_fs::OverlayFS};
+use crate::{TetronError, engine, fs::SimpleFs};
 
 mod kv;
 pub mod log;
 mod math;
+mod source_loader;
 
-#[derive(Clone)]
 pub struct TetronScripting {
-    runtime: Rc<RuntimeContext>,
+    context: Arc<Context>,
+    runtime: Arc<RuntimeContext>,
+    loader: SimpleFsSourceLoader,
+    fs: Rc<dyn SimpleFs>,
+    diagnostics: Diagnostics,
 }
 
 fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>, TetronError> {
@@ -30,7 +40,7 @@ fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>
 
 impl TetronScripting {
     pub fn new(
-        fs: Rc<OverlayFS>,
+        fs: Rc<dyn SimpleFs>,
         flags: Arc<RwLock<Kv>>,
         config: Arc<Kv>,
     ) -> Result<TetronScripting, TetronError> {
@@ -38,6 +48,52 @@ impl TetronScripting {
         for module in tetron_modules(flags, config)? {
             context.install(module)?;
         }
-        todo!()
+        let runtime = context.runtime()?;
+        let loader = SimpleFsSourceLoader::new(fs.clone());
+
+        Ok(Self {
+            fs,
+            context: Arc::new(context),
+            runtime: Arc::new(runtime),
+            loader,
+            diagnostics: Diagnostics::new(),
+        })
+    }
+
+    pub fn execute<T: rune::Any + FromValue>(
+        &mut self,
+        path: &str,
+        func: impl ToTypeHash,
+        args: impl rune::runtime::Args,
+    ) -> Result<T, TetronError> {
+        let p = Path::new(path);
+        let filename = p
+            .file_name()
+            .ok_or(TetronError::ModuleNotFound(path.into()))?
+            .to_str()
+            .ok_or(TetronError::Runtime(
+                "Unable to convert filename of path".into(),
+            ))?;
+
+        let contents = self.fs.read_text_file(path)?;
+        let mut sources = Sources::new();
+        sources.insert(Source::new(filename, contents)?)?;
+
+        let mut diagnostics = Diagnostics::new();
+        let result = rune::prepare(&mut sources)
+            .with_context(&self.context)
+            .with_diagnostics(&mut diagnostics)
+            .with_source_loader(&mut self.loader)
+            .build();
+
+        if !diagnostics.is_empty() {
+            let mut writer = StandardStream::stderr(ColorChoice::Always);
+            diagnostics.emit(&mut writer, &sources)?;
+        }
+
+        let unit = result?;
+        let mut vm = Vm::new(self.runtime.clone(), Arc::new(unit));
+        let output = vm.execute(func, args)?.complete().into_result()?;
+        Ok(rune::from_value::<T>(output)?)
     }
 }

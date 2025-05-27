@@ -1,16 +1,22 @@
-use rhai::{EvalAltResult, Position};
+use rune::{
+    ContextError,
+    diagnostics::EmitError,
+    runtime::{RuntimeError, VmError},
+};
 use stupid_simple_kv::KvError;
 
 use crate::fs::FsError;
 
-#[derive(Debug)]
+#[derive(Debug, rune::Any)]
 pub enum TetronError {
     Other(String),
     RequiredConfigNotFound(String),
-    ModuleNotFound(String, Position),
-    RhaiRuntime(String, Option<Position>),
+    ModuleNotFound(String),
+    Runtime(String),
     KvError(String),
     FsError(String),
+    ContextError(String),
+    Conversion(String),
 }
 
 impl From<String> for TetronError {
@@ -19,31 +25,39 @@ impl From<String> for TetronError {
     }
 }
 
-impl From<TetronError> for Box<EvalAltResult> {
-    fn from(value: TetronError) -> Self {
-        match value {
-            TetronError::Other(e) => Box::new(EvalAltResult::ErrorRuntime(
-                format!("Unknown error: {e}").into(),
-                rhai::Position::NONE,
-            )),
-            TetronError::RequiredConfigNotFound(_) => panic!("This should never happen"),
-            TetronError::ModuleNotFound(e, pos) => Box::new(EvalAltResult::ErrorModuleNotFound(
-                format!("Module not found: {e}"),
-                pos,
-            )),
-            TetronError::RhaiRuntime(e, pos) => Box::new(EvalAltResult::ErrorRuntime(
-                format!("Runtime error: {e}").into(),
-                pos.unwrap_or(Position::NONE),
-            )),
-            TetronError::KvError(s) => Box::new(EvalAltResult::ErrorRuntime(
-                format!("Key-value storage error: {s}").into(),
-                Position::NONE,
-            )),
-            TetronError::FsError(s) => Box::new(EvalAltResult::ErrorRuntime(
-                format!("Overlay filesystem error: {s}").into(),
-                Position::NONE,
-            )),
-        }
+impl From<ContextError> for TetronError {
+    fn from(value: ContextError) -> Self {
+        Self::ContextError(value.to_string())
+    }
+}
+
+impl From<RuntimeError> for TetronError {
+    fn from(value: RuntimeError) -> Self {
+        Self::Runtime(value.to_string())
+    }
+}
+
+impl From<rune::alloc::Error> for TetronError {
+    fn from(value: rune::alloc::Error) -> Self {
+        TetronError::Other(format!("Allocation error: {value}"))
+    }
+}
+
+impl From<rune::BuildError> for TetronError {
+    fn from(value: rune::BuildError) -> Self {
+        TetronError::Runtime(format!("error building sources: {value}"))
+    }
+}
+
+impl From<EmitError> for TetronError {
+    fn from(value: EmitError) -> Self {
+        TetronError::Runtime(format!("error emitting diagnostics: {value}"))
+    }
+}
+
+impl From<VmError> for TetronError {
+    fn from(value: VmError) -> Self {
+        TetronError::Runtime(format!("fatal scripting runtime error: {value}"))
     }
 }
 
@@ -55,19 +69,14 @@ impl std::fmt::Display for TetronError {
                 f,
                 "tetron: error: The required config item \"{var}\" was expected in game.json but not found."
             ),
-            TetronError::ModuleNotFound(e, position) => {
-                write!(
-                    f,
-                    "tetron: module not found: error {e} at position {position}"
-                )
+            TetronError::ModuleNotFound(e) => {
+                write!(f, "tetron: module not found: {e}")
             }
-            TetronError::RhaiRuntime(e, pos) => write!(
-                f,
-                "tetron: runtime error: '{e}' at position {}",
-                pos.unwrap_or(Position::NONE)
-            ),
+            TetronError::Runtime(e) => write!(f, "tetron: runtime error: '{e}' at position"),
             TetronError::KvError(s) => write!(f, "Key-value storage error: {s}"),
             TetronError::FsError(s) => write!(f, "Overlay filesystem error: {s}"),
+            TetronError::ContextError(s) => write!(f, "Error building Rune context: {s}"),
+            TetronError::Conversion(s) => write!(f, "Error converting types: {s}"),
         }
     }
 }
