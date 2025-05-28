@@ -1,135 +1,75 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use crate::{
-    TetronError,
-    scripting::utils::{FnOpts, register_fn},
-};
+use rune::{ContextError, Module};
+
+use crate::TetronError;
 
 use super::scene::SceneRef;
-use rhai::{
-    Dynamic, Engine, EvalAltResult, FnPtr, Module, NativeCallContext, NativeCallContextStore,
-    Position, plugin::RhaiResult,
-};
 
-struct WorldContext {
-    world: WorldRef,
-}
-
-type WorldEventListener = (NativeCallContextStore, FnPtr);
-
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct World {
     scenes: HashMap<String, SceneRef>,
-    current_scene: (String, SceneRef),
-    listeners: HashMap<String, WorldEventListener>,
+    current_scene: Option<(String, SceneRef)>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug, rune::Any, Default)]
+#[rune(name = World)]
 pub struct WorldRef(Rc<RefCell<World>>);
 
 impl WorldRef {
-    fn on(&self, event: &str, listener: WorldEventListener) -> Result<(), TetronError> {
-        self.0
-            .try_borrow_mut()
-            .map_err(|e| {
-                TetronError::RhaiRuntime(
-                    format!("Could not setup event listener {event}: {e}"),
-                    None,
-                )
-            })?
-            .listeners
-            .insert(event.into(), listener);
-        Ok(())
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    fn insert(&self, name: &str, scene: SceneRef) -> RhaiResult {
+    #[rune::function(instance)]
+    fn insert(&self, name: &str, scene: SceneRef) -> Result<(), TetronError> {
         self.0
             .try_borrow_mut()
-            .map_err(|e| {
-                TetronError::RhaiRuntime(format!("Could not load scene \"{name}\": {e}"), None)
-            })?
+            .map_err(|e| TetronError::Runtime(format!("Could not insert scene \"{name}\": {e}")))?
             .scenes
             .insert(name.into(), scene);
 
-        Ok(Dynamic::UNIT)
+        Ok(())
     }
 
-    fn load_scene(&self, name: &str) -> RhaiResult {
+    #[rune::function(instance)]
+    fn load_scene(&self, name: &str) -> Result<(), TetronError> {
         let scene = self
             .0
             .try_borrow()
-            .map_err(|e| {
-                TetronError::RhaiRuntime(format!("Could not load scene \"{name}\": {e}"), None)
-            })?
+            .map_err(|e| TetronError::Runtime(format!("Could not load scene \"{name}\": {e}")))?
             .scenes
             .get(name)
             .cloned()
-            .ok_or_else(|| {
-                TetronError::RhaiRuntime(
-                    format!("Could not load scene \"{name}\": Not found"),
-                    None,
-                )
-            })?;
+            .ok_or(TetronError::Runtime("Could not clone option".into()))?;
 
         self.0
             .try_borrow_mut()
-            .map_err(|e| {
-                TetronError::RhaiRuntime(format!("Could not load scene \"{name}\": {e}"), None)
-            })?
-            .current_scene = (name.to_owned(), scene);
+            .map_err(|e| TetronError::Runtime(format!("Could not load scene \"{name}\": {e}")))?
+            .current_scene = Some((name.to_owned(), scene));
 
-        Ok(Dynamic::UNIT)
+        Ok(())
+    }
+
+    pub fn game_loop(&mut self, dt: f32) -> Result<(), TetronError> {
+        self.0.try_borrow_mut()?.game_loop(dt)?;
+        Ok(())
     }
 }
 
 impl World {
-    fn create() -> WorldRef {
-        WorldRef(Rc::new(RefCell::new(Self::default())))
+    pub fn module() -> Result<Module, ContextError> {
+        let mut module = Module::with_crate_item("tetron", ["game", "world"])?;
+        module.ty::<WorldRef>()?;
+
+        Ok(module)
     }
 
-    pub fn register(engine: &mut Engine, module: &mut Module) {
-        module.set_custom_type::<WorldRef>("World");
-        register_fn(
-            module,
-            "load_scene",
-            WorldRef::load_scene,
-            &FnOpts::default(),
-        );
+    fn game_loop(&mut self, dt: f32) -> Result<(), TetronError> {
+        if let Some((_, scene)) = &mut self.current_scene {
+            scene.update(dt)?;
+        }
 
-        register_fn(module, "insert", WorldRef::insert, &FnOpts::default());
-
-        engine.register_raw_fn(
-            "on",
-            [
-                std::any::TypeId::of::<&mut WorldRef>(),
-                std::any::TypeId::of::<&str>(),
-                std::any::TypeId::of::<FnPtr>(),
-            ],
-            |context: NativeCallContext, args: &mut [&mut Dynamic]| {
-                let fp: FnPtr = args[2].take().cast::<FnPtr>(); // 3rd argument - function pointer
-                let value: &str = args[1].take().cast::<&str>(); // 2nd argument - event type
-                let this_ptr = args
-                    .get_mut(0)
-                    .ok_or(EvalAltResult::ErrorUnboundThis(Position::NONE))?
-                    .clone()
-                    .try_cast_result::<WorldRef>()
-                    .map_err(|e| {
-                        EvalAltResult::ErrorRuntime(
-                            format!("Expected WorldRef, found {e}").into(),
-                            Position::NONE,
-                        )
-                    })?;
-
-                this_ptr.on(value, (context.store_data(), fp));
-                Ok(())
-            },
-        );
-        module.set_sub_module("World", {
-            let mut sub = Module::new();
-            sub.set_native_fn("create", || Ok(Self::create()));
-            sub
-        });
+        Ok(())
     }
-
-    fn game_loop() {}
 }
