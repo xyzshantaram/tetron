@@ -3,6 +3,10 @@ name = "tetron"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "tetron-rune"
+path = "src/lsp.rs"
+
 [dependencies]
 anyhow = "1.0.98"
 stupid-simple-kv = "0.3.3"
@@ -17,4 +21,4 @@ sdl2 = { version = "0.37.0", features = [
 ] }
 zip = "2.6.1"
 serde_json = "1.0.140"
-rune = "0.14.0"
+rune = { version = "0.14.0", features = ["cli"] }

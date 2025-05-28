@@ -38,16 +38,21 @@ fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>
     Ok(vec![world, math, log, flags, config])
 }
 
+pub fn tetron_context(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Context, TetronError> {
+    let mut context = Context::with_config(false)?;
+    for module in tetron_modules(flags, config)? {
+        context.install(module)?;
+    }
+    Ok(context)
+}
+
 impl TetronScripting {
     pub fn new(
         fs: Rc<dyn SimpleFs>,
         flags: Arc<RwLock<Kv>>,
         config: Arc<Kv>,
     ) -> Result<TetronScripting, TetronError> {
-        let mut context = Context::with_config(false)?;
-        for module in tetron_modules(flags, config)? {
-            context.install(module)?;
-        }
+        let context = tetron_context(flags, config)?;
         let runtime = context.runtime()?;
         let loader = SimpleFsSourceLoader::new(fs.clone());
 
