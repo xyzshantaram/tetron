@@ -1,12 +1,12 @@
 use super::world::WorldRef;
 
 #[derive(Clone, rune::Any)]
-pub struct SystemCtx {
+pub struct Ctx {
     world: WorldRef,
     dt: f32,
 }
 
-impl SystemCtx {
+impl Ctx {
     pub fn new(world: WorldRef, dt: f32) -> Self {
         Self { world, dt }
     }
