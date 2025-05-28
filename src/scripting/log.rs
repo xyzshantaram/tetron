@@ -82,7 +82,7 @@ pub fn level(level: &str) -> bool {
         true
     } else {
         eprintln!(
-            "tetron::log: Invalid log level '{}'. Valid levels: off, error, warn, info, debug, trace",
+            "tetron::log: Invalid log level '{}'. Valid levels: off, error, warn, info, debug",
             level
         );
         false
@@ -122,7 +122,7 @@ fn log_macro(
 
 // Individual logging macros
 #[rune::macro_]
-pub fn msg(
+pub fn log_msg(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -130,7 +130,7 @@ pub fn msg(
 }
 
 #[rune::macro_]
-pub fn info(
+pub fn log_info(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -138,7 +138,7 @@ pub fn info(
 }
 
 #[rune::macro_]
-pub fn debug(
+pub fn log_debug(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -146,7 +146,7 @@ pub fn debug(
 }
 
 #[rune::macro_]
-pub fn error(
+pub fn log_error(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -154,19 +154,11 @@ pub fn error(
 }
 
 #[rune::macro_]
-pub fn warn(
+pub fn log_warn(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
     log_macro("warn")(cx, stream)
-}
-
-#[rune::macro_]
-pub fn trace(
-    cx: &mut MacroContext<'_, '_, '_>,
-    stream: &TokenStream,
-) -> compile::Result<TokenStream> {
-    log_macro("trace")(cx, stream)
 }
 
 // Create the tetron::log module
@@ -177,12 +169,11 @@ pub fn module() -> Result<Module, ContextError> {
     module.function_meta(level__meta)?;
 
     // Register logging macros
-    module.macro_meta(msg)?;
-    module.macro_meta(info)?;
-    module.macro_meta(debug)?;
-    module.macro_meta(error)?;
-    module.macro_meta(warn)?;
-    module.macro_meta(trace)?;
+    module.macro_meta(log_msg)?;
+    module.macro_meta(log_info)?;
+    module.macro_meta(log_debug)?;
+    module.macro_meta(log_error)?;
+    module.macro_meta(log_warn)?;
 
     Ok(module)
 }
