@@ -1,8 +1,15 @@
-use rune::{ContextError, Module, ToValue, runtime::Function};
+use rune::{
+    ContextError, Module, ToValue,
+    runtime::{Function, Object},
+};
 
 use crate::TetronError;
 
-use super::{entity::EntityRef, systems::Ctx, world::WorldRef};
+use super::{
+    entity::{Entity, EntityRef},
+    systems::Ctx,
+    world::WorldRef,
+};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug)]
@@ -10,14 +17,16 @@ pub struct Scene {
     world: WorldRef,
     entities: Vec<EntityRef>,
     systems: HashMap<String, Function>,
+    config: Object,
 }
 
 impl Scene {
-    pub fn new(world: WorldRef) -> Self {
+    pub fn new(world: WorldRef, config: Object) -> Self {
         Self {
             world,
             entities: Vec::new(),
             systems: HashMap::new(),
+            config,
         }
     }
     pub fn module() -> Result<Module, ContextError> {
@@ -32,9 +41,8 @@ impl Scene {
 pub struct SceneRef(Rc<RefCell<Scene>>);
 
 impl SceneRef {
-    #[rune::function(path = Self::new)]
-    fn new(world: WorldRef) -> Self {
-        SceneRef(Rc::new(RefCell::new(Scene::new(world))))
+    pub fn new(world: WorldRef, config: Object) -> Self {
+        SceneRef(Rc::new(RefCell::new(Scene::new(world, config))))
     }
 
     #[rune::function(keep)]
@@ -60,5 +68,9 @@ impl SceneRef {
         }
 
         Ok(())
+    }
+
+    pub fn entities(&self) -> Result<Vec<EntityRef>, TetronError> {
+        Ok(self.0.try_borrow()?.entities.clone())
     }
 }
