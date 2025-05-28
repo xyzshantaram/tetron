@@ -1,12 +1,18 @@
-use crate::TetronError;
-use crate::fs::{SimpleFS, overlay_fs::OverlayFS, to_vfs_layer};
-use crate::scripting::TetronScripting;
-use crate::sdl::TetronSdlHandle;
-use crate::utils::resolve_physical_fs_path;
+use crate::{
+    TetronError,
+    fs::{SimpleFs, overlay_fs::OverlayFs, to_vfs_layer},
+    scripting,
+    scripting::TetronScripting,
+    sdl::TetronSdlHandle,
+    utils::resolve_physical_fs_path,
+};
 use sdl2::{event::Event, keyboard::Keycode};
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::{process, time::Instant};
+use std::{
+    process,
+    rc::Rc,
+    sync::{Arc, RwLock},
+    time::Instant,
+};
 use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
 
 mod args;
@@ -14,31 +20,32 @@ mod behaviours;
 pub mod entity;
 pub mod physics;
 pub mod scene;
+pub mod systems;
 pub mod world;
 pub use args::TetronArgs;
 
 pub struct Game {
-    fs: Rc<OverlayFS>,
-    pub(crate) config: Rc<Kv>,
+    fs: Rc<dyn SimpleFs>,
+    pub(crate) config: Arc<Kv>,
     sdl: TetronSdlHandle,
     pub(crate) identifier: String,
     scripting: TetronScripting,
 }
 
 impl Game {
-    fn new<F>(fs: Rc<OverlayFS>, backend_factory: F) -> Result<Self, anyhow::Error>
+    fn new<F>(fs: Rc<dyn SimpleFs>, backend_factory: F) -> Result<Self, anyhow::Error>
     where
         F: FnOnce(&str) -> Result<Box<dyn KvBackend>, anyhow::Error>,
     {
         let json = fs.read_text_file("game.json")?;
-        let config = Rc::new(Kv::from_json_string(Box::new(MemoryBackend::new()), json)?);
+        let config = Arc::new(Kv::from_json_string(Box::new(MemoryBackend::new()), json)?);
 
         let identifier: String = config
             .get(&("identifier",))?
             .ok_or(TetronError::RequiredConfigNotFound("identifier".into()))?
             .try_into()?;
 
-        let flags = Rc::new(RefCell::new(Kv::new(backend_factory(&identifier)?)));
+        let flags = Arc::new(RwLock::new(Kv::new(backend_factory(&identifier)?)));
 
         let width: i64 = config
             .get(&("sdl", "width").to_key())?
@@ -52,10 +59,16 @@ impl Game {
             .get(&("sdl", "title").to_key())?
             .unwrap_or(identifier.clone().into())
             .try_into()?;
+
+        let level: String = config
+            .get(&("log", "level").to_key())?
+            .unwrap_or("info".into())
+            .try_into()?;
+
+        scripting::log::set_log_level(&level);
+
         let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
-
-        let scripting = TetronScripting::new(fs.clone(), flags.clone(), config.clone())?;
-
+        let scripting = TetronScripting::new(fs.clone(), flags, config.clone())?;
         Ok(Self {
             fs,
             config,
@@ -78,13 +91,13 @@ impl TryFrom<TetronArgs> for Game {
             }
         };
 
-        let mut layers: Vec<Box<dyn SimpleFS>> = vec![to_vfs_layer(&game_path)?];
+        let mut layers: Vec<Box<dyn SimpleFs>> = vec![to_vfs_layer(&game_path)?];
 
         for layer in args.layers.iter().rev() {
             layers.push(to_vfs_layer(layer)?);
         }
 
-        let fs = OverlayFS::from_layers(layers);
+        let fs = OverlayFs::from_layers(layers);
 
         let backend_factory = |identifier: &str| -> Result<Box<dyn KvBackend>, anyhow::Error> {
             let data =
@@ -112,13 +125,9 @@ impl Game {
             .ok_or(TetronError::RequiredConfigNotFound("entrypoint".into()))?
             .try_into()?;
 
-        self.scripting
-            .eval::<()>(&self.fs.read_text_file(&entrypoint)?)?;
-
         'running: loop {
             let now = Instant::now();
-            let delta = now.duration_since(last_frame);
-            let delta_secs = delta.as_secs_f32();
+            let delta = now.duration_since(last_frame).as_secs_f32();
             last_frame = now;
             for event in self.sdl.events.poll_iter() {
                 match event {
@@ -131,7 +140,7 @@ impl Game {
                 }
             }
 
-            self.update(&delta_secs);
+            self.update(&delta);
             self.sdl
                 .canvas
                 .set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));

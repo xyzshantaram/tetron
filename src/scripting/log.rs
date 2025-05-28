@@ -75,7 +75,7 @@ fn native_log(level_str: &str, file: &str, line: i64, message: &str) {
 
 // Function to set the log level at runtime
 #[rune::function(keep)]
-pub fn level(level: &str) -> bool {
+pub fn set_log_level(level: &str) -> bool {
     if let Some(log_level) = LogLevel::from_str(level) {
         CURRENT_LOG_LEVEL.store(log_level as u8, Ordering::Relaxed);
         println!("Log level set to: {}", log_level.as_str());
@@ -166,7 +166,7 @@ pub fn module() -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["log"])?;
 
     module.function_meta(native_log__meta)?;
-    module.function_meta(level__meta)?;
+    module.function_meta(set_log_level__meta)?;
 
     // Register logging macros
     module.macro_meta(log_msg)?;
