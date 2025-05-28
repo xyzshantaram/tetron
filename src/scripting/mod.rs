@@ -13,8 +13,9 @@ use source_loader::SimpleFsSourceLoader;
 use stupid_simple_kv::Kv;
 
 use crate::error::TetronError;
-use crate::{engine, fs::SimpleFs};
+use crate::fs::SimpleFs;
 
+mod game;
 mod kv;
 pub mod log;
 mod math;
@@ -29,15 +30,13 @@ pub struct TetronScripting {
 
 fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>, TetronError> {
     // custom tetron modules
-    let world = engine::world::World::module()?;
     let math = math::module()?;
     let log = log::module()?;
     let flags = kv::flags::module(flags)?;
     let config = kv::config::module(config)?;
-    let entity = engine::entity::Entity::module()?;
-    let scene = engine::scene::Scene::module()?;
+    let game = game::module()?;
 
-    Ok(vec![world, math, log, flags, config, entity, scene])
+    Ok(vec![math, log, flags, config, game])
 }
 
 pub fn tetron_context(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Context, TetronError> {
