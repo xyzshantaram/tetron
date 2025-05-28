@@ -24,7 +24,6 @@ pub struct TetronScripting {
     runtime: Arc<RuntimeContext>,
     loader: SimpleFsSourceLoader,
     fs: Rc<dyn SimpleFs>,
-    diagnostics: Diagnostics,
 }
 
 fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>, TetronError> {
@@ -34,8 +33,10 @@ fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>
     let log = log::module()?;
     let flags = kv::flags::module(flags)?;
     let config = kv::config::module(config)?;
+    let entity = engine::entity::Entity::module()?;
+    let scene = engine::scene::Scene::module()?;
 
-    Ok(vec![world, math, log, flags, config])
+    Ok(vec![world, math, log, flags, config, entity, scene])
 }
 
 pub fn tetron_context(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Context, TetronError> {
@@ -61,16 +62,15 @@ impl TetronScripting {
             context: Arc::new(context),
             runtime: Arc::new(runtime),
             loader,
-            diagnostics: Diagnostics::new(),
         })
     }
 
-    pub fn execute<T: rune::Any + FromValue>(
+    pub fn execute(
         &mut self,
         path: &str,
         func: impl ToTypeHash,
         args: impl rune::runtime::Args,
-    ) -> Result<T, TetronError> {
+    ) -> Result<(), TetronError> {
         let p = Path::new(path);
         let filename = p
             .file_name()
@@ -98,7 +98,7 @@ impl TetronScripting {
 
         let unit = result?;
         let mut vm = Vm::new(self.runtime.clone(), Arc::new(unit));
-        let output = vm.execute(func, args)?.complete().into_result()?;
-        Ok(rune::from_value::<T>(output)?)
+        vm.execute(func, args)?.complete().into_result()?;
+        Ok(())
     }
 }
