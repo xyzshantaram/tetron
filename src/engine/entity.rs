@@ -4,7 +4,7 @@ use std::{
     rc::Rc,
 };
 
-use rhai::Module;
+use rune::{ContextError, Module};
 
 use super::behaviours::Behaviour;
 
@@ -14,20 +14,20 @@ pub struct Entity {
     tags: HashSet<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, rune::Any)]
+#[rune(name = Entity)]
 pub struct EntityRef(Rc<RefCell<Entity>>);
 
 impl Entity {
-    fn create() -> EntityRef {
-        EntityRef(Rc::new(RefCell::new(Self::default())))
+    pub fn module() -> Result<Module, ContextError> {
+        let mut module = Module::with_crate_item("tetron", ["game"])?;
+        module.ty::<EntityRef>()?;
+        Ok(module)
     }
+}
 
-    pub fn register(module: &mut Module) {
-        module.set_custom_type::<EntityRef>("Entity");
-        module.set_sub_module("Entity", {
-            let mut sub = Module::new();
-            sub.set_native_fn("create", || Ok(Self::create()));
-            sub
-        });
+impl EntityRef {
+    pub fn new() -> Self {
+        EntityRef(Rc::new(RefCell::new(Entity::default())))
     }
 }
