@@ -1,4 +1,4 @@
-use tetron::{game::{world, drawable, physics}, scene, input};
+use tetron::{game::{world, drawable, physics}, input};
 use ::tetron::log::log_info;
 
 const BALL_RADIUS = 5;
@@ -66,7 +66,7 @@ fn out_of_bounds_system(ctx, _dt) {
 
 fn paddle_input_system(ctx, _dt) {
     for ent in ctx.query().with_tag("paddle") {
-        let phys = ctx.entity(ent).component("tetron:physics");
+        let phys = ent.component("tetron:physics");
         if (input.key("right")) {
             phys.apply_force(#{ x: 1, y: 0 });
         } else if (input.key("left")) {
@@ -95,8 +95,8 @@ fn Paddle(scene, x, y) {
     return paddle;
 }
 
-fn game_scene() {
-    let scene = scene::new(#{ bg: "#120321", gravity: #{ x: 0, y: 0 } });
+fn game_scene(world) {
+    let scene = world.scene(#{ bg: "#120321", gravity: #{ x: 0, y: 0 } });
 
     scene.insert(Paddle(scene, 320, 460));
     scene.insert(Ball(scene, 320, 240, 2, -3));
@@ -124,8 +124,8 @@ fn menu_input_system(ctx, _dt) {
     }
 }
 
-fn menu_scene() {
-    let scene = scene::new(#{ bg: "#000000" });
+fn menu_scene(world) {
+    let scene = world.scene(#{ bg: "#000000" });
 
     let label = scene.spawn();
     label.attach(
@@ -141,8 +141,8 @@ fn game_over_input_system(ctx, _dt) {
     }
 }
 
-fn game_over_scene() {
-    let scene = scene::new(#{ bg: "#120321" });
+fn game_over_scene(world) {
+    let scene = world.scene(#{ bg: "#120321" });
 
     let label = scene.spawn();
     label.attach(drawable::text(#{ text: "Game Over", size: 32, color: "#ff0000", x: 240, y: 200 }));
@@ -156,9 +156,9 @@ fn game_over_scene() {
 pub fn begin(world) {
     log_info!("running game breakout");
 
-    world.scene("main", game_scene());
-    world.scene("menu", menu_scene());
-    world.scene("game_over", game_over_scene());
+    world.insert("main", game_scene(world));
+    world.insert("menu", menu_scene(world));
+    world.insert("game_over", game_over_scene(world));
 
     world.load_scene("menu");
 }
