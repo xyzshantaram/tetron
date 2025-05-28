@@ -1,5 +1,6 @@
 use crate::fs::{FileMetadata, FsError, SimpleFs};
 
+#[derive(Default)]
 pub struct NoOpFs {}
 
 impl NoOpFs {
