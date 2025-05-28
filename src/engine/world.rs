@@ -1,6 +1,6 @@
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
-use rune::{ContextError, Module};
+use rune::{ContextError, Module, alloc::clone::TryClone, runtime::Object};
 
 use crate::TetronError;
 
@@ -16,9 +16,20 @@ pub struct World {
 #[rune(name = World)]
 pub struct WorldRef(Rc<RefCell<World>>);
 
+impl TryClone for WorldRef {
+    fn try_clone(&self) -> Result<Self, rune::alloc::Error> {
+        Ok(self.clone())
+    }
+}
+
 impl WorldRef {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    #[rune::function(instance)]
+    fn scene(&mut self, config: Object) -> SceneRef {
+        SceneRef::new(self.clone(), config)
     }
 
     #[rune::function(instance)]
@@ -54,6 +65,10 @@ impl WorldRef {
     pub fn game_loop(&mut self, dt: f32) -> Result<(), TetronError> {
         self.0.try_borrow_mut()?.game_loop(dt)?;
         Ok(())
+    }
+
+    pub fn current_scene(&self) -> Result<Option<(String, SceneRef)>, TetronError> {
+        Ok(self.0.try_borrow()?.current_scene.clone())
     }
 }
 
