@@ -103,5 +103,6 @@ pub(crate) fn to_vfs_layer(layer: &PathBuf) -> Result<Box<dyn SimpleFs>, anyhow:
 }
 
 pub mod disk_fs;
+pub mod noop_fs;
 pub mod overlay_fs;
 pub mod zip_fs;
