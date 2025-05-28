@@ -14,6 +14,7 @@ use std::{
     time::Instant,
 };
 use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
+use world::WorldRef;
 
 mod args;
 mod behaviours;
@@ -30,6 +31,7 @@ pub struct Game {
     sdl: TetronSdlHandle,
     pub(crate) identifier: String,
     scripting: TetronScripting,
+    world: Option<WorldRef>,
 }
 
 impl Game {
@@ -75,6 +77,7 @@ impl Game {
             sdl,
             identifier,
             scripting,
+            world: None,
         })
     }
 }
@@ -112,7 +115,13 @@ impl TryFrom<TetronArgs> for Game {
 }
 
 impl Game {
-    fn update(&mut self, delta: &f32) {}
+    fn update(&mut self, delta: f32) -> Result<(), TetronError> {
+        if let Some(world) = &mut self.world {
+            world.game_loop(delta)?;
+        }
+
+        Ok(())
+    }
 
     fn draw(&mut self) {}
 
@@ -124,6 +133,11 @@ impl Game {
             .get(&("entrypoint",).to_key())?
             .ok_or(TetronError::RequiredConfigNotFound("entrypoint".into()))?
             .try_into()?;
+
+        let world = WorldRef::new();
+        self.scripting
+            .execute(&entrypoint, ["begin"], (world.clone(),))?;
+        self.world = Some(world);
 
         'running: loop {
             let now = Instant::now();
@@ -140,7 +154,7 @@ impl Game {
                 }
             }
 
-            self.update(&delta);
+            self.update(delta)?;
             self.sdl
                 .canvas
                 .set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
