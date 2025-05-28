@@ -3,13 +3,9 @@ use rune::{
     runtime::{Function, Object},
 };
 
-use crate::TetronError;
+use crate::error::TetronError;
 
-use super::{
-    entity::{Entity, EntityRef},
-    systems::Ctx,
-    world::WorldRef,
-};
+use super::{entity::EntityRef, systems::Ctx, world::WorldRef};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug)]

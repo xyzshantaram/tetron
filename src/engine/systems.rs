@@ -1,4 +1,4 @@
-use crate::TetronError;
+use crate::error::TetronError;
 
 use super::{entity::EntityRef, world::WorldRef};
 

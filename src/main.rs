@@ -1,9 +1,4 @@
-mod engine;
-mod error;
-mod fs;
-mod scripting;
-mod sdl;
-mod utils;
+use tetron::{engine, error};
 
 use clap::Parser;
 use engine::{Game, TetronArgs};

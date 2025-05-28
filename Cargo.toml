@@ -2,10 +2,15 @@
 name = "tetron"
 version = "0.1.0"
 edition = "2024"
+publish = false
 
 [[bin]]
 name = "tetron-rune"
 path = "src/lsp.rs"
+
+[[bin]]
+name = "tetron"
+path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0.98"

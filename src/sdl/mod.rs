@@ -1,6 +1,6 @@
 use sdl2::{AudioSubsystem, EventPump, Sdl, VideoSubsystem, render::Canvas, video::Window};
 
-use crate::TetronError;
+use crate::error::TetronError;
 
 pub struct TetronSdlHandle {
     pub(crate) context: Sdl,

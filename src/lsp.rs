@@ -1,11 +1,5 @@
-mod engine;
-mod error;
-mod fs;
-mod scripting;
-mod sdl;
-mod utils;
+use tetron::scripting;
 
-pub use error::TetronError;
 use scripting::tetron_context;
 use std::sync::{Arc, RwLock};
 use stupid_simple_kv::{Kv, MemoryBackend};

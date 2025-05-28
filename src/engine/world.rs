@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use rune::{ContextError, Module, alloc::clone::TryClone, runtime::Object};
 
-use crate::TetronError;
+use crate::error::TetronError;
 
 use super::scene::SceneRef;
 

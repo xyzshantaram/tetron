@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use crate::TetronError;
+use crate::error::TetronError;
 use rune::{FromValue, ToValue, TypeHash, Value, alloc::String as RuneString, runtime::Object};
 use stupid_simple_kv::{KvKey, KvValue};
 

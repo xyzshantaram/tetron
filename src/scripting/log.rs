@@ -78,11 +78,11 @@ fn native_log(level_str: &str, file: &str, line: i64, message: &str) {
 pub fn set_log_level(level: &str) -> bool {
     if let Some(log_level) = LogLevel::from_str(level) {
         CURRENT_LOG_LEVEL.store(log_level as u8, Ordering::Relaxed);
-        println!("Log level set to: {}", log_level.as_str());
+        println!("tetron::log Log level set to: {}", log_level.as_str());
         true
     } else {
         eprintln!(
-            "tetron::log: Invalid log level '{}'. Valid levels: off, error, warn, info, debug",
+            "tetron::log Invalid log level '{}'. Valid levels: off, error, warn, info, debug",
             level
         );
         false
@@ -106,18 +106,18 @@ fn current_log_level() -> String {
 // Macro helper function to create logging macros
 fn log_macro(
     level: &'static str,
-) -> impl Fn(&mut MacroContext<'_, '_, '_>, &TokenStream) -> compile::Result<TokenStream> {
-    move |cx: &mut MacroContext<'_, '_, '_>, stream: &TokenStream| -> compile::Result<TokenStream> {
-        let mut parser = Parser::from_token_stream(stream, cx.input_span());
-        let message = parser.parse_all::<rune::ast::Expr>()?;
+    cx: &mut MacroContext<'_, '_, '_>,
+    stream: &TokenStream,
+) -> compile::Result<TokenStream> {
+    let mut parser = Parser::from_token_stream(stream, cx.input_span());
+    let message = parser.parse_all::<rune::ast::Expr>()?;
 
-        let level = cx.lit(level)?;
-        let expanded = quote! {
-            ::tetron::log::native_log(#level, file!(), line!(), #message)
-        };
+    let level = cx.lit(level)?;
+    let expanded = quote! {
+        ::tetron::log::native_log(#level, file!(), line!(), #message)
+    };
 
-        Ok(expanded.into_token_stream(cx)?)
-    }
+    Ok(expanded.into_token_stream(cx)?)
 }
 
 // Individual logging macros
@@ -126,7 +126,7 @@ pub fn log_msg(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
-    log_macro("info")(cx, stream)
+    log_macro("info", cx, stream)
 }
 
 #[rune::macro_]
@@ -134,7 +134,7 @@ pub fn log_info(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
-    log_macro("info")(cx, stream)
+    log_macro("info", cx, stream)
 }
 
 #[rune::macro_]
@@ -142,7 +142,7 @@ pub fn log_debug(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
-    log_macro("debug")(cx, stream)
+    log_macro("debug", cx, stream)
 }
 
 #[rune::macro_]
@@ -150,7 +150,7 @@ pub fn log_error(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
-    log_macro("error")(cx, stream)
+    log_macro("error", cx, stream)
 }
 
 #[rune::macro_]
@@ -158,7 +158,7 @@ pub fn log_warn(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
-    log_macro("warn")(cx, stream)
+    log_macro("warn", cx, stream)
 }
 
 // Create the tetron::log module

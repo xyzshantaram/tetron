@@ -5,14 +5,15 @@ use std::{
 };
 
 use rune::{
-    Context, Diagnostics, FromValue, Module, Source, Sources, ToTypeHash, Vm,
+    Context, Diagnostics, Module, Source, Sources, ToTypeHash, Vm,
     runtime::RuntimeContext,
     termcolor::{ColorChoice, StandardStream},
 };
 use source_loader::SimpleFsSourceLoader;
 use stupid_simple_kv::Kv;
 
-use crate::{TetronError, engine, fs::SimpleFs};
+use crate::error::TetronError;
+use crate::{engine, fs::SimpleFs};
 
 mod kv;
 pub mod log;

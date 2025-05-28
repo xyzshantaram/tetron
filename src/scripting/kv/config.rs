@@ -4,7 +4,7 @@ use rune::{ContextError, Module, Value};
 use stupid_simple_kv::Kv;
 
 use super::utils::{kv_value_to_rune, rune_vec_to_kv_key};
-use crate::TetronError;
+use crate::error::TetronError;
 
 pub fn module(config: Arc<Kv>) -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["config"])?;

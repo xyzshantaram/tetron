@@ -1,5 +1,5 @@
 use crate::{
-    TetronError,
+    error::TetronError,
     fs::{SimpleFs, overlay_fs::OverlayFs, to_vfs_layer},
     scripting,
     scripting::TetronScripting,
@@ -29,7 +29,7 @@ pub struct Game {
     fs: Rc<dyn SimpleFs>,
     pub(crate) config: Arc<Kv>,
     sdl: TetronSdlHandle,
-    pub(crate) identifier: String,
+    pub identifier: String,
     scripting: TetronScripting,
     world: Option<WorldRef>,
 }
