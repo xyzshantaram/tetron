@@ -1,3 +1,5 @@
+use std::cell::{BorrowError, BorrowMutError};
+
 use rune::{
     ContextError,
     diagnostics::EmitError,
@@ -90,6 +92,18 @@ impl From<KvError> for TetronError {
 impl From<FsError> for TetronError {
     fn from(value: FsError) -> Self {
         Self::FsError(value.to_string())
+    }
+}
+
+impl From<BorrowError> for TetronError {
+    fn from(value: BorrowError) -> Self {
+        Self::Runtime(value.to_string())
+    }
+}
+
+impl From<BorrowMutError> for TetronError {
+    fn from(value: BorrowMutError) -> Self {
+        Self::Runtime(value.to_string())
     }
 }
 
