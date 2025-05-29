@@ -25,11 +25,6 @@ impl Scene {
             config,
         }
     }
-    pub fn module() -> Result<Module, ContextError> {
-        let mut module = Module::with_crate_item("tetron", ["game"])?;
-        module.ty::<SceneRef>()?;
-        Ok(module)
-    }
 }
 
 #[derive(Clone, Debug, rune::Any)]
