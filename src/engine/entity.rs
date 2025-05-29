@@ -6,11 +6,11 @@ use std::{
 
 use crate::error::TetronError;
 
-use super::behaviours::Behaviour;
+use super::behaviours::BehaviourRef;
 
 #[derive(Default, Debug)]
 pub struct Entity {
-    pub behaviours: HashMap<String, Behaviour>,
+    pub behaviours: HashMap<String, BehaviourRef>,
     pub tags: HashSet<String>,
 }
 
@@ -29,26 +29,35 @@ impl EntityRef {
         Ok(())
     }
 
-    #[rune::function]
+    #[rune::function(keep)]
     pub fn has_tag(&self, tag: &str) -> Result<bool, TetronError> {
         Ok(self.0.try_borrow()?.tags.contains(tag))
     }
 
-    #[rune::function]
-    pub fn attach(&mut self, behaviour: Behaviour) -> Result<(), TetronError> {
+    #[rune::function(keep)]
+    pub fn attach(&mut self, behaviour: BehaviourRef) -> Result<(), TetronError> {
         let behaviours = &mut self.0.try_borrow_mut()?.behaviours;
-        if behaviours.contains_key(&behaviour.name) {
+        let name = behaviour.name()?;
+
+        #[allow(clippy::map_entry)]
+        if behaviours.contains_key(&name) {
             Err(TetronError::Runtime(format!(
                 "Cannot insert behaviour {}: already exists",
-                behaviour.name
+                name
             )))
         } else {
-            behaviours.insert(behaviour.name.clone(), behaviour);
+            behaviours.insert(name, behaviour);
             Ok(())
         }
     }
 
+    #[rune::function]
     pub fn has_behaviour(&self, name: &str) -> Result<bool, TetronError> {
         Ok(self.0.try_borrow()?.behaviours.contains_key(name))
+    }
+
+    #[rune::function]
+    pub fn behaviour(&self, name: &str) -> Result<Option<BehaviourRef>, TetronError> {
+        Ok(self.0.try_borrow()?.behaviours.get(name).cloned())
     }
 }

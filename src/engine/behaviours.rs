@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashSet;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::error::TetronError;
@@ -43,7 +45,7 @@ impl BehaviourFactory {
     }
 
     #[rune::function(keep)]
-    pub fn create(&self, config: Object) -> Result<Behaviour, TetronError> {
+    pub fn create(&self, config: Object) -> Result<BehaviourRef, TetronError> {
         for name in config.keys() {
             if !self.keys.contains(name.as_str()) {
                 return Err(BehaviourError::InvalidProperty(name.to_string()).into());
@@ -56,11 +58,11 @@ impl BehaviourFactory {
             self.name.clone()
         };
 
-        Ok(Behaviour {
+        Ok(BehaviourRef::new(Behaviour {
             name,
             config,
             fields: self.keys.clone(),
-        })
+        }))
     }
 }
 
@@ -73,21 +75,42 @@ impl Behaviour {
         }
     }
 
-    #[rune::function(instance, protocol = SET, vm_result)]
-    fn set_field(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
+    fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
         self.check_field(field)?;
-        self.config.insert(RuneString::try_from(field)?, value).vm?;
+        self.config.insert(RuneString::try_from(field)?, value)?;
         Ok(())
     }
 
-    #[rune::function(instance, keep, protocol = GET, vm_result)]
-    fn get_field(&self, field: &str) -> Result<Option<Value>, TetronError> {
+    fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
         self.check_field(field)?;
         Ok(self.config.get(field).cloned())
     }
 
-    #[rune::function]
     fn name(&self) -> String {
         self.name.clone()
+    }
+}
+
+#[derive(rune::Any, Debug, Clone)]
+pub struct BehaviourRef(Rc<RefCell<Behaviour>>);
+
+impl BehaviourRef {
+    fn new(behaviour: Behaviour) -> Self {
+        Self(Rc::new(RefCell::new(behaviour)))
+    }
+
+    #[rune::function(keep)]
+    pub fn name(&self) -> Result<String, TetronError> {
+        Ok(self.0.try_borrow()?.name())
+    }
+
+    #[rune::function(instance, keep, protocol = GET)]
+    fn set_field(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
+        self.0.try_borrow_mut()?.set(field, value)
+    }
+
+    #[rune::function(instance, keep, protocol = GET)]
+    fn get_field(&self, field: &str) -> Result<Option<Value>, TetronError> {
+        self.0.try_borrow()?.get(field)
     }
 }

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
     engine::{
-        behaviours::{Behaviour, BehaviourFactory},
+        behaviours::{BehaviourFactory, BehaviourRef},
         entity::EntityRef,
         physics::vec2::Vec2,
         scene::SceneRef,
@@ -11,9 +11,7 @@ use crate::{
     error::TetronError,
 };
 
-use rune::{
-    ContextError, FromValue, Module, TypeHash, Value, docstring, from_value, runtime::Object,
-};
+use rune::{ContextError, FromValue, Module, TypeHash, Value, docstring, runtime::Object};
 use rune::{ToValue, alloc::String as RuneString};
 
 fn obj_key(s: &str) -> Result<RuneString, rune::alloc::Error> {
@@ -83,7 +81,7 @@ fn shape_behaviour(module: &mut Module) -> Result<(), ContextError> {
     module
         .function(
             "shape",
-            move |name: &str, mut config: Object| -> Result<Behaviour, TetronError> {
+            move |name: &str, mut config: Object| -> Result<BehaviourRef, TetronError> {
                 if matches!(name, "rect" | "poly" | "line" | "circle") {
                     if shape_cfg_validator(name)(&config) {
                         config.insert(obj_key("type")?, obj_key(name)?.to_value()?)?;
@@ -171,7 +169,7 @@ fn physics_behaviour(module: &mut Module) -> Result<(), ContextError> {
     module
         .function(
             "physics",
-            move |obj: &Object| -> Result<Behaviour, TetronError> {
+            move |obj: &Object| -> Result<BehaviourRef, TetronError> {
                 physics.create({
                     let vel = match obj.get("vel") {
                         Some(value) => Vec2::from_value(value.clone())?,
@@ -224,7 +222,7 @@ pub fn module() -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["game"])?;
     module.ty::<WorldRef>()?;
     module.ty::<SceneRef>()?;
-    module.ty::<Behaviour>()?;
+    module.ty::<BehaviourRef>()?;
     module.ty::<EntityRef>()?;
     module.ty::<BehaviourFactory>()?;
 
