@@ -11,8 +11,22 @@ use crate::{
     error::TetronError,
 };
 
-use rune::{ContextError, FromValue, Module, TypeHash, Value, docstring, runtime::Object};
+use rune::{
+    ContextError, FromValue, Module, TypeHash, Value,
+    alloc::{clone::TryClone, string::TryToString},
+    docstring,
+    runtime::Object,
+};
 use rune::{ToValue, alloc::String as RuneString};
+
+fn clone_rune_object(obj: &Object) -> Result<Object, TetronError> {
+    let mut copy = Object::new();
+    for item in obj.iter() {
+        copy.insert(item.0.try_to_string()?, item.1.try_clone()?)?;
+    }
+
+    Ok(copy)
+}
 
 fn obj_key(s: &str) -> Result<RuneString, rune::alloc::Error> {
     RuneString::try_from(s)
@@ -81,9 +95,10 @@ fn shape_behaviour(module: &mut Module) -> Result<(), ContextError> {
     module
         .function(
             "shape",
-            move |name: &str, mut config: Object| -> Result<BehaviourRef, TetronError> {
+            move |name: &str, config: &Object| -> Result<BehaviourRef, TetronError> {
                 if matches!(name, "rect" | "poly" | "line" | "circle") {
-                    if shape_cfg_validator(name)(&config) {
+                    if shape_cfg_validator(name)(config) {
+                        let mut config = clone_rune_object(config)?;
                         config.insert(obj_key("type")?, obj_key(name)?.to_value()?)?;
                         Ok(shapes.create(config)?)
                     } else {
@@ -119,34 +134,36 @@ fn transform_behaviour(module: &mut Module) -> Result<(), ContextError> {
         true,
     );
 
-    module
-        .function("transform", move |obj: &Object| {
-            transform.create({
-                let x = obj
-                    .get("x")
-                    .and_then(|v| v.as_float().ok())
-                    .unwrap_or(0.0)
-                    .to_value()?;
-                let y = obj
-                    .get("y")
-                    .and_then(|v| v.as_float().ok())
-                    .unwrap_or(0.0)
-                    .to_value()?;
-                let rot = obj
-                    .get("rot")
-                    .and_then(|v| v.as_float().ok())
-                    .unwrap_or(0.0)
-                    .to_value()?;
+    let func = move |obj: &Object| {
+        transform.create({
+            let x = obj
+                .get("x")
+                .and_then(|v| v.as_float().ok())
+                .unwrap_or(0.0)
+                .to_value()?;
+            let y = obj
+                .get("y")
+                .and_then(|v| v.as_float().ok())
+                .unwrap_or(0.0)
+                .to_value()?;
+            let rot = obj
+                .get("rot")
+                .and_then(|v| v.as_float().ok())
+                .unwrap_or(0.0)
+                .to_value()?;
 
-                let mut val = Object::new();
+            let mut val = Object::new();
 
-                val.insert(obj_key("x")?, x)?;
-                val.insert(obj_key("y")?, y)?;
-                val.insert(obj_key("rot")?, rot)?;
+            val.insert(obj_key("x")?, x)?;
+            val.insert(obj_key("y")?, y)?;
+            val.insert(obj_key("rot")?, rot)?;
 
-                val
-            })
+            val
         })
+    };
+
+    module
+        .function("transform", func)
         .build()?
         .docs(docstring! {
             /// Create a new transform behaviour. All fields are optional and default to zero if not specified.
@@ -166,53 +183,78 @@ fn physics_behaviour(module: &mut Module) -> Result<(), ContextError> {
         true,
     );
 
+    let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
+        physics.create({
+            let vel = match obj.get("vel") {
+                Some(value) => Vec2::from_value(value.clone())?,
+                None => Vec2::zero(),
+            };
+
+            let collision = String::from_value(
+                obj.get("collision")
+                    .ok_or_else(|| {
+                        TetronError::Runtime(
+                            "physics(): collision behaviour must be specified".into(),
+                        )
+                    })?
+                    .clone(),
+            )?;
+
+            if !(["simulate", "immovable", "none"].contains(&collision.as_str())) {
+                return Err(TetronError::Runtime(format!(
+                    "Invalid collision type {collision} specified"
+                )));
+            }
+
+            let mut mass = obj.get("mass").and_then(|v| v.as_float().ok());
+
+            if collision == "simulate" && mass.is_none() {
+                return Err(TetronError::Runtime(
+                    "physics(): mass must be specified for simulated bodies".into(),
+                ));
+            } else if collision == "immovable" {
+                mass.replace(f64::INFINITY);
+            }
+
+            let mut val = Object::new();
+            val.insert(obj_key("vel")?, vel.to_value()?)?;
+            val.insert(obj_key("collision")?, collision.to_value()?)?;
+            val.insert(obj_key("mass")?, mass.unwrap_or(-1.0).into())?;
+            val
+        })
+    };
+
+    module.function("physics", func).build()?.docs(docstring! {
+        /// Create a new physics behaviour.
+    })?;
+
+    Ok(())
+}
+
+fn drawable_behaviour(module: &mut Module) -> Result<(), ContextError> {
+    let drawable = BehaviourFactory::new(
+        "drawable",
+        HashSet::from([
+            "color".into(),
+            "anim".into(),
+            "font".into(),
+            "text".into(),
+            "stroke".into(),
+            "fill".into(),
+        ]),
+        true,
+    );
+
+    let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
+        let copy = clone_rune_object(obj)?;
+        drawable.create(copy)
+    };
+
     module
-        .function(
-            "physics",
-            move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-                physics.create({
-                    let vel = match obj.get("vel") {
-                        Some(value) => Vec2::from_value(value.clone())?,
-                        None => Vec2::zero(),
-                    };
-
-                    let collision = String::from_value(
-                        obj.get("collision")
-                            .ok_or_else(|| {
-                                TetronError::Runtime(
-                                    "physics(): collision behaviour must be specified".into(),
-                                )
-                            })?
-                            .clone(),
-                    )?;
-
-                    if !(["simulate", "immovable", "none"].contains(&collision.as_str())) {
-                        return Err(TetronError::Runtime(format!(
-                            "Invalid collision type {collision} specified"
-                        )));
-                    }
-
-                    let mut mass = obj.get("mass").and_then(|v| v.as_float().ok());
-
-                    if collision == "simulate" && mass.is_none() {
-                        return Err(TetronError::Runtime(
-                            "physics(): mass must be specified for simulated bodies".into(),
-                        ));
-                    } else if collision == "immovable" {
-                        mass.replace(f64::INFINITY);
-                    }
-
-                    let mut val = Object::new();
-                    val.insert(obj_key("vel")?, vel.to_value()?)?;
-                    val.insert(obj_key("collision")?, collision.to_value()?)?;
-                    val.insert(obj_key("mass")?, mass.unwrap_or(-1.0).into())?;
-                    val
-                })
-            },
-        )
+        .function("drawable", func)
         .build()?
         .docs(docstring! {
-            /// Create a new physics behaviour.
+            /// Create a new drawable behaviour.
         })?;
 
     Ok(())
@@ -229,19 +271,7 @@ pub fn module() -> Result<Module, ContextError> {
     transform_behaviour(&mut module)?;
     physics_behaviour(&mut module)?;
     shape_behaviour(&mut module)?;
-
-    let drawable = BehaviourFactory::new(
-        "drawable",
-        HashSet::from([
-            "color".into(),
-            "anim".into(),
-            "font".into(),
-            "text".into(),
-            "stroke".into(),
-            "fill".into(),
-        ]),
-        true,
-    );
+    drawable_behaviour(&mut module)?;
 
     Ok(module)
 }
