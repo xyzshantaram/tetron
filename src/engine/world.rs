@@ -1,3 +1,6 @@
+use super::{behaviours::BehaviourFactory, scene::SceneRef};
+use crate::{error::TetronError, utils::RuneString};
+use rune::{alloc::clone::TryClone, runtime::Object};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -5,20 +8,16 @@ use std::{
     sync::Arc,
 };
 
-use rune::alloc::String as RuneString;
-use rune::{alloc::clone::TryClone, runtime::Object};
-
-use crate::error::TetronError;
-
-use super::{behaviours::BehaviourFactory, scene::SceneRef};
-
 #[derive(rune::Any, Clone, Debug)]
-pub struct BehaviourFactoryRef(Arc<BehaviourFactory>);
+// ok to ignore warning, used in Rune
+pub struct BehaviourFactoryRef(#[allow(dead_code)] Arc<BehaviourFactory>);
 
 #[derive(Debug, Default)]
 pub struct World {
+    #[allow(dead_code)] // used in rune
     scenes: HashMap<String, SceneRef>,
     current_scene: Option<(String, SceneRef)>,
+    #[allow(dead_code)] // used in rune
     behaviour_registry: HashMap<String, BehaviourFactoryRef>,
 }
 
