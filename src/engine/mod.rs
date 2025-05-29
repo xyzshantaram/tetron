@@ -18,10 +18,13 @@ use world::WorldRef;
 
 mod args;
 pub mod behaviours;
+pub mod drawable;
 pub mod entity;
 pub mod physics;
 pub mod scene;
+pub mod shape;
 pub mod systems;
+pub mod transform;
 pub mod world;
 pub use args::TetronArgs;
 

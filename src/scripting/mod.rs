@@ -21,6 +21,11 @@ pub mod log;
 mod math;
 mod source_loader;
 
+use crate::engine::drawable;
+use crate::engine::physics;
+use crate::engine::shape;
+use crate::engine::transform;
+
 pub struct TetronScripting {
     context: Arc<Context>,
     runtime: Arc<RuntimeContext>,
@@ -35,8 +40,14 @@ fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>
     let flags = kv::flags::module(flags)?;
     let config = kv::config::module(config)?;
     let game = game::module()?;
+    let physics = physics::module()?;
+    let shape = shape::module()?;
+    let drawable = drawable::module()?;
+    let transform = transform::module()?;
 
-    Ok(vec![math, log, flags, config, game])
+    Ok(vec![
+        math, log, flags, config, game, shape, drawable, transform, physics,
+    ])
 }
 
 pub fn tetron_context(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Context, TetronError> {

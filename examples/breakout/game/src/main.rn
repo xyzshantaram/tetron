@@ -1,5 +1,5 @@
 use tetron::{game::{drawable, physics, transform, shape}, input};
-use ::tetron::log::log_info;
+use ::tetron::log;
 
 const BALL_RADIUS = 5;
 const PADDLE_W = 80;
@@ -11,29 +11,29 @@ const BRICK_COLOR = "#ff6600";
 
 fn Ball(scene, x, y) {
     let ball = scene.spawn();
-    ball.attach(shape("circle", #{ r: BALL_RADIUS }));
-    ball.attach(physics(#{ collision: "simulate" }));
-    ball.attach(transform(#{ x, y }));
-    ball.attach(drawable(#{ color: "#ffffff" }));
+    ball.attach(shape::create("circle", #{ r: BALL_RADIUS }));
+    ball.attach(physics::create(#{ collision: "simulate" }));
+    ball.attach(transform::create(#{ x, y }));
+    ball.attach(drawable::create(#{ color: "#ffffff" }));
     ball.tag("player");
     return ball;
 }
 
 fn Wall(scene, x, y, w, h) {
     let wall = scene.spawn();
-    wall.attach(shape("rect", #{ w, h }));
-    wall.attach(drawable(#{ color: WALL_COLOR }));
-    wall.attach(physics(#{ immovable: true }));
-    wall.attach(transform(#{ x, y }));
+    wall.attach(shape::create("rect", #{ w, h }));
+    wall.attach(drawable::create(#{ color: WALL_COLOR }));
+    wall.attach(physics::create(#{ immovable: true }));
+    wall.attach(transform::create(#{ x, y }));
     return wall;
 }
 
 fn Brick(scene, x, y) {
     let brick = scene.spawn();
-    brick.attach(shape("rect", #{ w: BRICK_W, h: BRICK_H }));
-    brick.attach(drawable(#{ color: BRICK_COLOR }));
-    brick.attach(physics(#{ immovable: true }));
-    brick.attach(transform(#{ x, y }));
+    brick.attach(shape::create("rect", #{ w: BRICK_W, h: BRICK_H }));
+    brick.attach(drawable::create(#{ color: BRICK_COLOR }));
+    brick.attach(physics::create(#{ immovable: true }));
+    brick.attach(transform::create(#{ x, y }));
     return brick;
 }
 
@@ -63,10 +63,10 @@ fn paddle_input_system(ctx, _dt) {
 fn Paddle(scene, x, y) {
     let paddle = scene.spawn();
     paddle.tag("paddle");
-    paddle.attach(shape("rect", #{ w: PADDLE_W, h: PADDLE_H }));
-    paddle.attach(drawable(#{ color: "#007cdf" }));
-    paddle.attach(physics(#{ friction: 0.8, collision: "immovable" }));
-    paddle.attach(transform(#{ x, y }));
+    paddle.attach(shape::create("rect", #{ w: PADDLE_W, h: PADDLE_H }));
+    paddle.attach(drawable::create(#{ color: "#007cdf" }));
+    paddle.attach(physics::create(#{ friction: 0.8, collision: "immovable" }));
+    paddle.attach(transform::create(#{ x, y }));
     return paddle;
 }
 
@@ -102,9 +102,8 @@ fn menu_scene(world) {
     let scene = world.scene(#{ bg: "#000000" });
 
     let label = scene.spawn();
-    label.attach(
-        drawable::text(#{ text: "Press SPACE to Start", size: 24, color: "#ffffff", x: 200, y: 220 }),
-    );
+    label.attach(drawable::create(#{ text: "Press SPACE to Start", size: 24, color: "#ffffff" }));
+    label.attach(transform::create(#{ x: 200, y: 220 }));
 
     scene.system("update", menu_input_system);
 }
@@ -119,12 +118,12 @@ fn game_over_scene(world) {
     let scene = world.scene(#{ bg: "#120321" });
 
     let label = scene.spawn();
-    label.attach(transform(#{ x: 240, y: 200 }));
-    label.attach(drawable(#{ text: "Game Over", font: #{ size: 32 }, color: "#ff0000" }));
+    label.attach(transform::create(#{ x: 240, y: 200 }));
+    label.attach(drawable::create(#{ text: "Game Over", font: #{ size: 32 }, color: "#ff0000" }));
 
     let prompt = scene.spawn();
-    prompt.attach(drawable(#{ text: "Press R to Restart", font: #{ size: 20 }, color: "#ffffff" }));
-    prompt.attach(transform(#{ x: 230, y: 260 }));
+    prompt.attach(drawable::create(#{ text: "Press R to Restart", font: #{ size: 20 }, color: "#ffffff" }));
+    prompt.attach(transform::create(#{ x: 230, y: 260 }));
 
     scene.system("update", game_over_input_system);
 }
