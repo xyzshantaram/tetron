@@ -1,15 +1,25 @@
-use std::{cell::RefCell, collections::HashMap, rc::Rc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+    sync::Arc,
+};
 
-use rune::{ContextError, Module, alloc::clone::TryClone, runtime::Object};
+use rune::alloc::String as RuneString;
+use rune::{alloc::clone::TryClone, runtime::Object};
 
 use crate::error::TetronError;
 
-use super::scene::SceneRef;
+use super::{behaviours::BehaviourFactory, scene::SceneRef};
+
+#[derive(rune::Any, Clone, Debug)]
+pub struct BehaviourFactoryRef(Arc<BehaviourFactory>);
 
 #[derive(Debug, Default)]
 pub struct World {
     scenes: HashMap<String, SceneRef>,
     current_scene: Option<(String, SceneRef)>,
+    behaviour_registry: HashMap<String, BehaviourFactoryRef>,
 }
 
 #[derive(Clone, Debug, rune::Any, Default)]
@@ -25,6 +35,37 @@ impl TryClone for WorldRef {
 impl WorldRef {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    #[rune::function(instance)]
+    fn define_behaviour(
+        &mut self,
+        name: &str,
+        keys: Vec<RuneString>,
+    ) -> Result<BehaviourFactoryRef, TetronError> {
+        let registry = &mut self.0.try_borrow_mut()?.behaviour_registry;
+        if name.starts_with("tetron:") {
+            Err(TetronError::Runtime(format!(
+                "Cannot define behaviour {name}: Behaviour names cannot start with 'tetron:'"
+            )))
+        } else if registry.contains_key(name) {
+            Err(TetronError::Runtime(format!(
+                "Cannot define behaviour {name}: a behaviour with the same name already exists"
+            )))
+        } else {
+            let factory = BehaviourFactoryRef(Arc::new(BehaviourFactory::new(
+                name,
+                HashSet::from_iter(keys.iter().map(|v| v.to_string())),
+                false,
+            )));
+            registry.insert(name.into(), factory.clone());
+            Ok(factory)
+        }
+    }
+
+    #[rune::function(instance)]
+    fn behaviour(&self, name: &str) -> Result<Option<BehaviourFactoryRef>, TetronError> {
+        Ok(self.0.try_borrow()?.behaviour_registry.get(name).cloned())
     }
 
     #[rune::function(instance)]
@@ -73,13 +114,6 @@ impl WorldRef {
 }
 
 impl World {
-    pub fn module() -> Result<Module, ContextError> {
-        let mut module = Module::with_crate_item("tetron", ["game", "world"])?;
-        module.ty::<WorldRef>()?;
-
-        Ok(module)
-    }
-
     fn game_loop(&mut self, dt: f32) -> Result<(), TetronError> {
         if let Some((_, scene)) = &mut self.current_scene {
             scene.update(dt)?;
