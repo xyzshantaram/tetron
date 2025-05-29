@@ -66,7 +66,7 @@ impl Vec2 {
         }
     }
 
-    #[rune::function(path = Self::zero)]
+    #[rune::function(keep, path = Self::zero)]
     pub fn zero() -> Vec2 {
         Self::ZERO
     }
