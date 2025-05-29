@@ -62,13 +62,6 @@ impl Game {
             .unwrap_or(identifier.clone().into())
             .try_into()?;
 
-        let level: String = config
-            .get(&("log", "level").to_key())?
-            .unwrap_or("info".into())
-            .try_into()?;
-
-        scripting::log::set_log_level(&level);
-
         let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
         let scripting = TetronScripting::new(fs.clone(), flags, config.clone())?;
         Ok(Self {
@@ -135,6 +128,16 @@ impl Game {
             .try_into()?;
 
         let world = WorldRef::new();
+
+        println!("tetron: running {}", self.identifier);
+        let level: String = self
+            .config
+            .get(&("log", "level").to_key())?
+            .unwrap_or("info".into())
+            .try_into()?;
+
+        scripting::log::level(&level);
+
         self.scripting
             .execute(&entrypoint, ["begin"], (world.clone(),))?;
         self.world = Some(world);
