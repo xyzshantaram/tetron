@@ -24,7 +24,9 @@ impl From<BehaviourError> for TetronError {
 #[derive(rune::Any, Debug)]
 pub struct Behaviour {
     pub(crate) name: String,
+    #[allow(dead_code)] // used in impl Behaviour
     pub(crate) config: Object,
+    #[allow(dead_code)] // used in impl Behaviour
     pub(crate) fields: Arc<HashSet<String>>,
 }
 
@@ -67,6 +69,7 @@ impl BehaviourFactory {
 }
 
 impl Behaviour {
+    #[allow(dead_code)] // used on the Rune side
     fn check_field(&self, field: &str) -> Result<(), TetronError> {
         if !self.fields.contains(field) {
             Err(BehaviourError::InvalidProperty(field.to_owned()).into())
@@ -75,12 +78,14 @@ impl Behaviour {
         }
     }
 
+    #[allow(dead_code)]
     fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
         self.check_field(field)?;
         self.config.insert(RuneString::try_from(field)?, value)?;
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
         self.check_field(field)?;
         Ok(self.config.get(field).cloned())

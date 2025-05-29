@@ -1,5 +1,5 @@
 use rune::{
-    ContextError, Module, ToValue,
+    ToValue,
     runtime::{Function, Object},
 };
 
