@@ -50,9 +50,9 @@ fn out_of_bounds_system(ctx, _dt) {
 fn paddle_input_system(ctx, _dt) {
     for ent in ctx.query().with_tag("paddle") {
         let phys = ent.component("tetron:physics");
-        if (input.key("right")) {
+        if (input::is_down("right")) {
             phys.apply_force(#{ x: 1, y: 0 });
-        } else if (input.key("left")) {
+        } else if (input::is_down("left")) {
             phys.apply_force(#{ x: -1, y: 0 });
         } else {
             phys.vel.x = 0;
@@ -93,7 +93,7 @@ fn game_scene(world) {
 }
 
 fn menu_input_system(ctx, _dt) {
-    if (input.key_down("space")) {
+    if (input::is_down("Space")) {
         ctx.world.load_scene("main");
     }
 }
@@ -110,7 +110,7 @@ fn menu_scene(world) {
 }
 
 fn game_over_input_system(ctx, _dt) {
-    if (input.key_down("r")) {
+    if (input::is_down("r")) {
         ctx.world.load_scene("main");
     }
 }
@@ -119,8 +119,8 @@ fn game_over_scene(world) {
     let scene = world.scene(#{ bg: "#120321" });
 
     let label = scene.spawn();
-    label.attach(drawable(#{ text: "Game Over", font: #{ size: 32 }, color: "#ff0000" }));
     label.attach(transform(#{ x: 240, y: 200 }));
+    label.attach(drawable(#{ text: "Game Over", font: #{ size: 32 }, color: "#ff0000" }));
 
     let prompt = scene.spawn();
     prompt.attach(drawable(#{ text: "Press R to Restart", font: #{ size: 20 }, color: "#ffffff" }));
@@ -130,7 +130,6 @@ fn game_over_scene(world) {
 }
 
 pub fn begin(world) {
-    log_info!("running game breakout");
     world.insert("main", game_scene(world));
     world.insert("menu", menu_scene(world));
     world.insert("game_over", game_over_scene(world));
