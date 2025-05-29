@@ -1,0 +1,5 @@
+use ::tetron::log;
+
+pub fn begin(world) {
+	log::info!("hello, world!");
+}

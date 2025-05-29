@@ -1,0 +1,8 @@
+{
+    "identifier": "xyz.shantaram.tetron-demo-hello-world",
+    "entrypoint": "src/main.rn",
+    "sdl:width": 800,
+    "sdl:height": 600,
+    "sdl:title": "Hello, Tetron!",
+    "log:level": "debug"
+}
