@@ -75,10 +75,13 @@ fn native_log(level_str: &str, file: &str, line: i64, message: &str) {
 
 // Function to set the log level at runtime
 #[rune::function(keep)]
-pub fn set_log_level(level: &str) -> bool {
+pub fn level(level: &str) -> bool {
     if let Some(log_level) = LogLevel::from_str(level) {
         CURRENT_LOG_LEVEL.store(log_level as u8, Ordering::Relaxed);
-        println!("tetron::log Log level set to: {}", log_level.as_str());
+        println!(
+            "tetron::log \x1b[36m[SYSTEM]\x1b[0m Log level set to: {}",
+            log_level.as_str()
+        );
         true
     } else {
         eprintln!(
@@ -122,7 +125,7 @@ fn log_macro(
 
 // Individual logging macros
 #[rune::macro_]
-pub fn log_msg(
+pub fn println(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -130,7 +133,7 @@ pub fn log_msg(
 }
 
 #[rune::macro_]
-pub fn log_info(
+pub fn info(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -138,7 +141,7 @@ pub fn log_info(
 }
 
 #[rune::macro_]
-pub fn log_debug(
+pub fn debug(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -146,7 +149,7 @@ pub fn log_debug(
 }
 
 #[rune::macro_]
-pub fn log_error(
+pub fn error(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -154,7 +157,7 @@ pub fn log_error(
 }
 
 #[rune::macro_]
-pub fn log_warn(
+pub fn warn(
     cx: &mut MacroContext<'_, '_, '_>,
     stream: &TokenStream,
 ) -> compile::Result<TokenStream> {
@@ -166,14 +169,14 @@ pub fn module() -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["log"])?;
 
     module.function_meta(native_log__meta)?;
-    module.function_meta(set_log_level__meta)?;
+    module.function_meta(level__meta)?;
 
     // Register logging macros
-    module.macro_meta(log_msg)?;
-    module.macro_meta(log_info)?;
-    module.macro_meta(log_debug)?;
-    module.macro_meta(log_error)?;
-    module.macro_meta(log_warn)?;
+    module.macro_meta(println)?;
+    module.macro_meta(info)?;
+    module.macro_meta(debug)?;
+    module.macro_meta(error)?;
+    module.macro_meta(warn)?;
 
     Ok(module)
 }
