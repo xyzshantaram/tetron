@@ -17,7 +17,7 @@ use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
 use world::WorldRef;
 
 mod args;
-mod behaviours;
+pub mod behaviours;
 pub mod entity;
 pub mod physics;
 pub mod scene;
