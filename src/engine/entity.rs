@@ -47,4 +47,8 @@ impl EntityRef {
             Ok(())
         }
     }
+
+    pub fn has_behaviour(&self, name: &str) -> Result<bool, TetronError> {
+        Ok(self.0.try_borrow()?.behaviours.contains_key(name))
+    }
 }
