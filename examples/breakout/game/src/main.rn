@@ -13,8 +13,8 @@ fn Ball(scene, x, y) {
     let ball = scene.spawn();
     ball.attach(shape("circle", #{ r: BALL_RADIUS }));
     ball.attach(physics(#{ collision: "simulate" }));
-    ball.attach(drawable(#{ color: "#ffffff" }));
     ball.attach(transform(#{ x, y }));
+    ball.attach(drawable(#{ color: "#ffffff" }));
     ball.tag("player");
     return ball;
 }
@@ -88,7 +88,6 @@ fn game_scene(world) {
         }
     }
 
-    scene.system("physics", systems::physics());
     scene.system("input", paddle_input_system);
     scene.system("out-of-bounds", out_of_bounds_system);
 }
