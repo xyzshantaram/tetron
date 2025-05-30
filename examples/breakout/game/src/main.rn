@@ -1,5 +1,4 @@
 use tetron::{game::{drawable, physics, transform, shape}, input};
-use ::tetron::log;
 
 const BALL_RADIUS = 5;
 const PADDLE_W = 80;
@@ -37,11 +36,10 @@ fn Brick(scene, x, y) {
     return brick;
 }
 
-// Rust-defined System: Checks if ball goes off screen
 fn out_of_bounds_system(ctx, _dt) {
     for ball in ctx.query().with_tag("ball") {
-        let pos = ctx.entity(ball).component("tetron:physics").pos;
-        if (pos.y > 480) {
+        let pos = ball.behaviour("tetron:physics").pos;
+        if (pos.y >= 480) {
             ctx.world.load_scene("game_over");
         }
     }
@@ -49,13 +47,13 @@ fn out_of_bounds_system(ctx, _dt) {
 
 fn paddle_input_system(ctx, _dt) {
     for ent in ctx.query().with_tag("paddle") {
-        let phys = ent.component("tetron:physics");
-        if (input::is_down("right")) {
-            phys.apply_force(#{ x: 1, y: 0 });
-        } else if (input::is_down("left")) {
-            phys.apply_force(#{ x: -1, y: 0 });
+        let b = ent.behaviour("tetron:physics");
+        if (input::just_released("KeyRight")) {
+            physics::apply_force(b, #{ x: 1, y: 0 });
+        } else if (input::is_down("KeyLeft")) {
+            physics::apply_force(b, #{ x: -1, y: 0 });
         } else {
-            phys.vel.x = 0;
+            b.vel.x = 0;
         }
     }
 }
@@ -93,7 +91,7 @@ fn game_scene(world) {
 }
 
 fn menu_input_system(ctx, _dt) {
-    if (input::is_down("Space")) {
+    if (input::just_released("Space")) {
         ctx.world.load_scene("main");
     }
 }
@@ -109,7 +107,7 @@ fn menu_scene(world) {
 }
 
 fn game_over_input_system(ctx, _dt) {
-    if (input::is_down("r")) {
+    if (input::just_released("r")) {
         ctx.world.load_scene("main");
     }
 }
