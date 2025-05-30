@@ -25,6 +25,14 @@ tetron run --game /path/to/game
 
 Mods can be specified by providing `--layer` with a path to a game file.
 
+### Creating a game
+
+```sh
+tetron init my-game
+```
+
+This creates a simple Tetron hello world project that you can edit.
+
 ## LICENSE
 
 Copyright &copy; 2025- Siddharth Singh, [The MIT License](./LICENSE.md).
