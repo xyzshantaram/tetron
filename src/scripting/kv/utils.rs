@@ -1,7 +1,6 @@
+use crate::{error::TetronError, utils::RuneString};
+use rune::{FromValue, ToValue, TypeHash, Value, runtime::Object};
 use std::collections::BTreeMap;
-
-use crate::error::TetronError;
-use rune::{FromValue, ToValue, TypeHash, Value, alloc::String as RuneString, runtime::Object};
 use stupid_simple_kv::{KvKey, KvValue};
 
 pub fn rune_vec_to_kv_key(value: Vec<Value>) -> Result<KvKey, TetronError> {
