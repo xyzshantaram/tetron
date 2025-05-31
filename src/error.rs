@@ -19,6 +19,7 @@ pub enum TetronError {
     FsError(String),
     ContextError(String),
     Conversion(String),
+    Quit,
 }
 
 impl From<String> for TetronError {
@@ -79,6 +80,7 @@ impl std::fmt::Display for TetronError {
             TetronError::FsError(s) => write!(f, "Overlay filesystem error: {s}"),
             TetronError::ContextError(s) => write!(f, "Error building Rune context: {s}"),
             TetronError::Conversion(s) => write!(f, "Error converting types: {s}"),
+            TetronError::Quit => write!(f, "Player initiated quit"),
         }
     }
 }
