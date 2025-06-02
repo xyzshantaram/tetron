@@ -66,9 +66,21 @@ fn vec2(x: f64, y: f64) -> Vec2 {
     Vec2::new(x, y)
 }
 
+#[rune::function(keep)]
+pub fn apply_force(b: &mut BehaviourRef, force: Vec2) -> Result<(), TetronError> {
+    let vel = if let Some(val) = b.get("vel")? {
+        Vec2::from_value(val)?
+    } else {
+        Vec2::zero()
+    };
+    b.set("vel", (vel + force).to_value()?)?;
+    Ok(())
+}
+
 pub fn module() -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["game", "physics"])?;
     register_factory(&mut module)?;
     module.function_meta(vec2)?;
+    module.function_meta(apply_force__meta)?;
     Ok(module)
 }
