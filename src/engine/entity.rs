@@ -23,8 +23,8 @@ impl Registrable for EntityRef {
         module.function_meta(EntityRef::tag)?;
         module.function_meta(EntityRef::has_tag__meta)?;
         module.function_meta(EntityRef::attach__meta)?;
-        module.function_meta(EntityRef::has_behaviour)?;
-        module.function_meta(EntityRef::behaviour)?;
+        module.function_meta(EntityRef::has_behaviour__meta)?;
+        module.function_meta(EntityRef::behaviour__meta)?;
         Ok(())
     }
 }
@@ -61,12 +61,12 @@ impl EntityRef {
         }
     }
 
-    #[rune::function]
+    #[rune::function(keep)]
     pub fn has_behaviour(&self, name: &str) -> bool {
         self.0.borrow().behaviours.contains_key(name)
     }
 
-    #[rune::function]
+    #[rune::function(keep)]
     pub fn behaviour(&self, name: &str) -> Option<BehaviourRef> {
         self.0.borrow().behaviours.get(name).cloned()
     }
