@@ -1,4 +1,4 @@
-use tetron::{game::{drawable, physics, transform, shape}, input};
+use tetron::{game::{drawable, physics, physics::vec2, transform, shape}, input};
 
 const BALL_RADIUS = 5;
 const PADDLE_W = 80;
@@ -12,7 +12,7 @@ fn Ball(scene, x, y) {
     let ball = scene.spawn();
     ball.attach(shape::create("circle", #{ r: BALL_RADIUS }));
     ball.attach(physics::create(#{ collision: "simulate" }));
-    ball.attach(transform::create(#{ x, y }));
+    ball.attach(transform::create(#{ pos: vec2(x, y) }));
     ball.attach(drawable::create(#{ color: "#ffffff" }));
     ball.tag("player");
     return ball;
@@ -23,7 +23,7 @@ fn Wall(scene, x, y, w, h) {
     wall.attach(shape::create("rect", #{ w, h }));
     wall.attach(drawable::create(#{ color: WALL_COLOR }));
     wall.attach(physics::create(#{ immovable: true }));
-    wall.attach(transform::create(#{ x, y }));
+    wall.attach(transform::create(#{ pos: vec2(x, y) }));
     return wall;
 }
 
@@ -32,7 +32,7 @@ fn Brick(scene, x, y) {
     brick.attach(shape::create("rect", #{ w: BRICK_W, h: BRICK_H }));
     brick.attach(drawable::create(#{ color: BRICK_COLOR }));
     brick.attach(physics::create(#{ immovable: true }));
-    brick.attach(transform::create(#{ x, y }));
+    brick.attach(transform::create(#{ pos: vec2(x, y) }));
     return brick;
 }
 
@@ -64,7 +64,7 @@ fn Paddle(scene, x, y) {
     paddle.attach(shape::create("rect", #{ w: PADDLE_W, h: PADDLE_H }));
     paddle.attach(drawable::create(#{ color: "#007cdf" }));
     paddle.attach(physics::create(#{ friction: 0.8, collision: "immovable" }));
-    paddle.attach(transform::create(#{ x, y }));
+    paddle.attach(transform::create(#{ pos: vec2(x, y) }));
     return paddle;
 }
 

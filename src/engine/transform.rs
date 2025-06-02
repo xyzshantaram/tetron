@@ -1,7 +1,10 @@
-use super::behaviours::{BehaviourFactory, BehaviourRef};
+use super::{
+    behaviours::{BehaviourFactory, BehaviourRef},
+    physics::vec2::Vec2,
+};
 use crate::error::TetronError;
 use crate::utils;
-use rune::{ContextError, Module, ToValue, docstring, runtime::Object};
+use rune::{ContextError, Module, ToValue, docstring, from_value, runtime::Object};
 use std::collections::HashSet;
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
@@ -12,15 +15,10 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     );
 
     let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-        let x = obj
-            .get("x")
-            .and_then(|v| v.as_float().ok())
-            .unwrap_or(0.0)
-            .to_value()?;
-        let y = obj
-            .get("y")
-            .and_then(|v| v.as_float().ok())
-            .unwrap_or(0.0)
+        let pos = obj
+            .get("pos")
+            .cloned()
+            .unwrap_or(Vec2::new(0.0, 0.0).to_value()?)
             .to_value()?;
         let rot = obj
             .get("rot")
@@ -29,8 +27,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
             .to_value()?;
 
         let mut val = Object::new();
-        val.insert(utils::rune::obj_key("x")?, x)?;
-        val.insert(utils::rune::obj_key("y")?, y)?;
+        val.insert(utils::rune::obj_key("pos")?, pos)?;
         val.insert(utils::rune::obj_key("rot")?, rot)?;
 
         transform.create(val)
