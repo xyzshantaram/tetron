@@ -1,19 +1,17 @@
-use std::{
-    path::Path,
-    rc::Rc,
-    sync::{Arc, RwLock},
-};
-
+use crate::{engine::input, fs::SimpleFs};
+use crate::{engine::input::KeyState, error::TetronError};
 use rune::{
     Context, Diagnostics, Module, Source, Sources, ToTypeHash, Vm,
     runtime::RuntimeContext,
     termcolor::{ColorChoice, StandardStream},
 };
 use source_loader::SimpleFsSourceLoader;
+use std::{
+    path::Path,
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 use stupid_simple_kv::Kv;
-
-use crate::error::TetronError;
-use crate::fs::SimpleFs;
 
 mod game;
 mod kv;
@@ -33,7 +31,11 @@ pub struct TetronScripting {
     fs: Rc<dyn SimpleFs>,
 }
 
-fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>, TetronError> {
+fn tetron_modules(
+    flags: Arc<RwLock<Kv>>,
+    config: Arc<Kv>,
+    input: Arc<RwLock<KeyState>>,
+) -> Result<Vec<Module>, TetronError> {
     // custom tetron modules
     let math = math::module()?;
     let log = log::module()?;
@@ -44,15 +46,20 @@ fn tetron_modules(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Vec<Module>
     let shape = shape::module()?;
     let drawable = drawable::module()?;
     let transform = transform::module()?;
+    let input = input::module(input)?;
 
     Ok(vec![
-        math, log, flags, config, game, shape, drawable, transform, physics,
+        math, log, flags, config, game, shape, drawable, transform, physics, input,
     ])
 }
 
-pub fn tetron_context(flags: Arc<RwLock<Kv>>, config: Arc<Kv>) -> Result<Context, TetronError> {
+pub fn tetron_context(
+    flags: Arc<RwLock<Kv>>,
+    config: Arc<Kv>,
+    input: Arc<RwLock<KeyState>>,
+) -> Result<Context, TetronError> {
     let mut context = Context::with_config(false)?;
-    for module in tetron_modules(flags, config)? {
+    for module in tetron_modules(flags, config, Arc::clone(&input))? {
         context.install(module)?;
     }
     Ok(context)
@@ -63,8 +70,9 @@ impl TetronScripting {
         fs: Rc<dyn SimpleFs>,
         flags: Arc<RwLock<Kv>>,
         config: Arc<Kv>,
+        input: Arc<RwLock<KeyState>>,
     ) -> Result<TetronScripting, TetronError> {
-        let context = tetron_context(flags, config)?;
+        let context = tetron_context(flags, config, input)?;
         let runtime = context.runtime()?;
         let loader = SimpleFsSourceLoader::new(fs.clone());
 

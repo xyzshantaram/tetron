@@ -1,4 +1,5 @@
 use std::cell::{BorrowError, BorrowMutError};
+use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
 
 use rune::{
     ContextError,
@@ -106,6 +107,18 @@ impl From<BorrowError> for TetronError {
 impl From<BorrowMutError> for TetronError {
     fn from(value: BorrowMutError) -> Self {
         Self::Runtime(value.to_string())
+    }
+}
+
+impl<'a> From<PoisonError<RwLockReadGuard<'a, crate::engine::input::KeyState>>> for TetronError {
+    fn from(err: PoisonError<RwLockReadGuard<'a, crate::engine::input::KeyState>>) -> Self {
+        TetronError::Runtime(format!("KeyState RwLock read guard poisoned: {}", err))
+    }
+}
+
+impl<'a> From<PoisonError<RwLockWriteGuard<'a, crate::engine::input::KeyState>>> for TetronError {
+    fn from(err: PoisonError<RwLockWriteGuard<'a, crate::engine::input::KeyState>>) -> Self {
+        TetronError::Runtime(format!("KeyState RwLock write guard poisoned: {}", err))
     }
 }
 

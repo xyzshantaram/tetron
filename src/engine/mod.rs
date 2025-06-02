@@ -6,6 +6,7 @@ use crate::{
     sdl::TetronSdlHandle,
     utils::resolve_physical_fs_path,
 };
+use input::KeyState;
 use sdl2::{event::Event, keyboard::Keycode};
 use std::{
     process,
@@ -20,6 +21,7 @@ mod args;
 pub mod behaviours;
 pub mod drawable;
 pub mod entity;
+pub mod input;
 pub mod physics;
 pub mod scene;
 pub mod shape;
@@ -35,6 +37,7 @@ pub struct Game {
     pub identifier: String,
     scripting: TetronScripting,
     world: Option<WorldRef>,
+    input: Arc<RwLock<KeyState>>,
 }
 
 impl Game {
@@ -66,7 +69,9 @@ impl Game {
             .try_into()?;
 
         let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
-        let scripting = TetronScripting::new(fs.clone(), flags, config.clone())?;
+        let input = Arc::new(RwLock::new(KeyState::new()));
+        let scripting =
+            TetronScripting::new(fs.clone(), flags, config.clone(), Arc::clone(&input))?;
         Ok(Self {
             fs,
             config,
@@ -74,6 +79,7 @@ impl Game {
             identifier,
             scripting,
             world: None,
+            input,
         })
     }
 }
@@ -149,7 +155,9 @@ impl Game {
             let now = Instant::now();
             let delta = now.duration_since(last_frame).as_secs_f32();
             last_frame = now;
+            self.input.write()?.next_frame();
             for event in self.sdl.events.poll_iter() {
+                self.input.write()?.update(&event);
                 match event {
                     Event::Quit { .. }
                     | Event::KeyDown {

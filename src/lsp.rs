@@ -1,4 +1,4 @@
-use tetron::scripting;
+use tetron::{engine::input::KeyState, scripting};
 
 use scripting::tetron_context;
 use std::sync::{Arc, RwLock};
@@ -14,7 +14,8 @@ pub fn main() {
         );
         let flags = Arc::new(RwLock::new(Kv::new(backends.0)));
         let config = Arc::new(Kv::new(backends.1));
-        Ok(tetron_context(flags.clone(), config.clone()).expect("Error building tetron context"))
+        let input = Arc::new(RwLock::new(KeyState::new()));
+        Ok(tetron_context(flags.clone(), config.clone(), input.clone()).expect("Error building tetron context"))
     })
     .run();
 }
