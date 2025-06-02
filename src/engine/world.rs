@@ -40,7 +40,6 @@ impl Registrable for WorldRef {
         module.function_meta(WorldRef::define_behaviour)?;
         module.function_meta(WorldRef::behaviour)?;
         module.function_meta(WorldRef::scene)?;
-        module.function_meta(WorldRef::insert)?;
         module.function_meta(WorldRef::load_scene)?;
         Ok(())
     }
@@ -83,19 +82,18 @@ impl WorldRef {
     }
 
     #[rune::function(instance)]
-    fn scene(&self, config: Object) -> SceneRef {
-        SceneRef::new(self.clone(), config)
-    }
+    fn scene(&self, name: &str, config: Object) -> Result<SceneRef, TetronError> {
+        let mut world = self.0.borrow_mut();
+        if world.scenes.contains_key(name) {
+            return Err(TetronError::Runtime(format!(
+                "Could not create scene {name} - a scene with that name already exists"
+            )));
+        }
 
-    #[rune::function(instance)]
-    fn insert(&self, name: &str, scene: SceneRef) -> Result<(), TetronError> {
-        self.0
-            .try_borrow_mut()
-            .map_err(|e| TetronError::Runtime(format!("Could not insert scene \"{name}\": {e}")))?
-            .scenes
-            .insert(name.into(), scene);
+        let scene = SceneRef::new(self.clone(), config);
+        world.scenes.insert(name.into(), scene.clone());
 
-        Ok(())
+        Ok(scene)
     }
 
     #[rune::function(instance)]
