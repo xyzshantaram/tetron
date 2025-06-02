@@ -68,7 +68,7 @@ impl WorldRef {
     }
 
     #[rune::function(instance)]
-    fn scene(&mut self, config: Object) -> SceneRef {
+    fn scene(&self, config: Object) -> SceneRef {
         SceneRef::new(self.clone(), config)
     }
 
