@@ -3,6 +3,7 @@ use crate::{
         behaviours::{BehaviourFactory, BehaviourRef},
         entity::EntityRef,
         scene::SceneRef,
+        systems::Ctx,
         world::WorldRef,
     },
     utils::Registrable,
@@ -17,6 +18,7 @@ pub fn module() -> Result<Module, ContextError> {
     BehaviourRef::register(&mut module)?;
     EntityRef::register(&mut module)?;
     BehaviourFactory::register(&mut module)?;
+    Ctx::register(&mut module)?;
 
     Ok(module)
 }

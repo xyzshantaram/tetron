@@ -1,8 +1,13 @@
-use rune::runtime::Object;
-
-use crate::error::TetronError;
-
 use super::{entity::EntityRef, world::WorldRef};
+use crate::{
+    error::TetronError,
+    utils::{Registrable, RuneString},
+};
+use rune::{Value, runtime::Object};
+use std::{
+    any::{Any, TypeId},
+    collections::HashSet,
+};
 
 #[derive(Clone, rune::Any)]
 pub struct Ctx {
@@ -12,18 +17,67 @@ pub struct Ctx {
     dt: f64,
 }
 
+fn vec_str_to_hashset(v: &Value) -> Result<HashSet<String>, TetronError> {
+    if let Ok(vec) = v.borrow_ref::<rune::runtime::Vec>() {
+        let mut set = HashSet::<String>::new();
+        for item in vec.iter() {
+            if item.type_id() != TypeId::of::<RuneString>() {
+                return Err(TetronError::Runtime("invalid item {item:?}".into()));
+            } else {
+                set.insert(item.borrow_string_ref()?.to_string());
+            }
+        }
+        Ok(set)
+    } else {
+        Ok(Default::default())
+    }
+}
+
 impl Ctx {
     pub fn new(world: WorldRef, dt: f64) -> Self {
         Self { world, dt }
     }
 
-    #[rune::function]
+    #[rune::function(keep)]
     fn query(&self, query: Object) -> Result<Vec<EntityRef>, TetronError> {
         let mut result: Vec<EntityRef> = Vec::new();
 
+        let parse = |key| -> Result<HashSet<String>, TetronError> {
+            Ok(query
+                .get(key)
+                .map(vec_str_to_hashset)
+                .transpose()?
+                .unwrap_or_default())
+        };
+
+        let tags = parse("tag")?;
+        let behaviours = parse("b")?;
+
         if let Some((_, scene)) = self.world.current_scene()? {
-            for entity in scene.entities()? {}
+            let entities = scene.entities();
+            if tags.is_empty() && behaviours.is_empty() {
+                return Ok(entities);
+            }
+
+            for entity in scene.entities() {
+                let has_tag = tags.is_empty() || tags.iter().any(|t| entity.has_tag(t));
+                let has_behaviour =
+                    behaviours.is_empty() || behaviours.iter().any(|b| entity.has_behaviour(b));
+
+                if has_tag && has_behaviour {
+                    result.push(entity.clone());
+                }
+            }
         }
+
         Ok(result)
+    }
+}
+
+impl Registrable for Ctx {
+    fn register(module: &mut rune::Module) -> Result<(), rune::ContextError> {
+        module.ty::<Ctx>()?;
+        module.function_meta(Ctx::query__meta)?;
+        Ok(())
     }
 }
