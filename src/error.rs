@@ -1,5 +1,7 @@
-use std::cell::{BorrowError, BorrowMutError};
-use std::sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard};
+use std::{
+    cell::{BorrowError, BorrowMutError},
+    sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard},
+};
 
 use rune::{
     ContextError,
@@ -76,7 +78,7 @@ impl std::fmt::Display for TetronError {
             TetronError::ModuleNotFound(e) => {
                 write!(f, "tetron: module not found: {e}")
             }
-            TetronError::Runtime(e) => write!(f, "tetron: runtime error: '{e}'"),
+            TetronError::Runtime(e) => write!(f, "tetron: runtime error: {e}"),
             TetronError::KvError(s) => write!(f, "Key-value storage error: {s}"),
             TetronError::FsError(s) => write!(f, "Overlay filesystem error: {s}"),
             TetronError::ContextError(s) => write!(f, "Error building Rune context: {s}"),

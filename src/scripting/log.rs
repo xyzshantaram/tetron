@@ -1,7 +1,8 @@
-use rune::compile;
-use rune::macros::{MacroContext, TokenStream, quote};
-use rune::parse::Parser;
-use rune::{ContextError, Module};
+use rune::{
+    ContextError, Module, compile,
+    macros::{MacroContext, TokenStream, quote},
+    parse::Parser,
+};
 use std::sync::atomic::{AtomicU8, Ordering};
 
 /// Global log level that can be changed at runtime

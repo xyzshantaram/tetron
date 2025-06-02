@@ -1,7 +1,9 @@
 use rune::{ContextError, Module, docstring};
 use sdl2::{event::Event, keyboard::Scancode};
-use std::collections::HashSet;
-use std::sync::{Arc, RwLock};
+use std::{
+    collections::HashSet,
+    sync::{Arc, RwLock},
+};
 
 use crate::error::TetronError;
 

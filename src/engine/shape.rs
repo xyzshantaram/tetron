@@ -1,6 +1,5 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::engine::physics::vec2::Vec2;
-use crate::{error::TetronError, utils};
+use crate::{engine::physics::vec2::Vec2, error::TetronError, utils};
 use rune::{ContextError, Module, ToValue, TypeHash, Value, docstring, runtime::Object};
 use std::collections::HashSet;
 

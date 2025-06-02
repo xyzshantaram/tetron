@@ -1,5 +1,7 @@
-use std::collections::{BTreeSet, HashMap};
-use std::io::{Cursor, Read};
+use std::{
+    collections::{BTreeSet, HashMap},
+    io::{Cursor, Read},
+};
 
 use zip::ZipArchive;
 

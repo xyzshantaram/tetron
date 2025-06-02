@@ -2,8 +2,7 @@ use super::{
     behaviours::{BehaviourFactory, BehaviourRef},
     physics::vec2::Vec2,
 };
-use crate::error::TetronError;
-use crate::utils;
+use crate::{error::TetronError, utils};
 use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
 use std::collections::HashSet;
 

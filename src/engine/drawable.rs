@@ -1,6 +1,5 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::error::TetronError;
-use crate::utils;
+use crate::{error::TetronError, utils};
 use rune::{ContextError, Module, docstring, runtime::Object};
 use std::collections::HashSet;
 

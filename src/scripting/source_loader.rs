@@ -1,10 +1,11 @@
 use std::rc::Rc;
 
-use rune::alloc::borrow::TryToOwned;
-use rune::alloc::path::Path;
-use rune::ast::Spanned;
-use rune::compile;
-use rune::{Item, Source};
+use rune::{
+    Item, Source,
+    alloc::{borrow::TryToOwned, path::Path},
+    ast::Spanned,
+    compile,
+};
 
 use crate::fs::SimpleFs;
 use rune::compile::SourceLoader; // Replace with your actual module

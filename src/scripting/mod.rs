@@ -1,5 +1,8 @@
-use crate::{engine::input, fs::SimpleFs};
-use crate::{engine::input::KeyState, error::TetronError};
+use crate::{
+    engine::{drawable, input, input::KeyState, physics, shape, transform},
+    error::TetronError,
+    fs::SimpleFs,
+};
 use rune::{
     Context, Diagnostics, Module, Source, Sources, ToTypeHash, Vm,
     runtime::RuntimeContext,
@@ -18,11 +21,6 @@ mod kv;
 pub mod log;
 mod math;
 mod source_loader;
-
-use crate::engine::drawable;
-use crate::engine::physics;
-use crate::engine::shape;
-use crate::engine::transform;
 
 pub struct TetronScripting {
     context: Arc<Context>,
