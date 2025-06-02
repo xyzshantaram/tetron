@@ -1,12 +1,11 @@
+use super::behaviours::BehaviourRef;
+use crate::{error::TetronError, utils::Registrable};
+use rune::{ContextError, Module};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
     rc::Rc,
 };
-
-use crate::error::TetronError;
-
-use super::behaviours::BehaviourRef;
 
 #[derive(Default, Debug)]
 pub struct Entity {
@@ -17,6 +16,18 @@ pub struct Entity {
 #[derive(Clone, Debug, Default, rune::Any)]
 #[rune(name = Entity)]
 pub struct EntityRef(Rc<RefCell<Entity>>);
+
+impl Registrable for EntityRef {
+    fn register(module: &mut Module) -> Result<(), ContextError> {
+        module.ty::<EntityRef>()?;
+        module.function_meta(EntityRef::tag)?;
+        module.function_meta(EntityRef::has_tag__meta)?;
+        module.function_meta(EntityRef::attach__meta)?;
+        module.function_meta(EntityRef::has_behaviour)?;
+        module.function_meta(EntityRef::behaviour)?;
+        Ok(())
+    }
+}
 
 impl EntityRef {
     pub fn new() -> Self {

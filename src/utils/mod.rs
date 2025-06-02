@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use ::rune::{ContextError, Module};
+
 pub fn resolve_physical_fs_path(path: &Path) -> Result<PathBuf, anyhow::Error> {
     let cwd = env::current_dir()?;
     let full_path = cwd.join(path);
@@ -31,4 +33,8 @@ pub mod rune {
     pub(crate) fn obj_key(s: &str) -> Result<RuneString, rune::alloc::Error> {
         RuneString::try_from(s)
     }
+}
+
+pub trait Registrable {
+    fn register(module: &mut Module) -> Result<(), ContextError>;
 }

@@ -1,11 +1,9 @@
-use std::cell::RefCell;
-use std::collections::HashSet;
-use std::rc::Rc;
-use std::sync::Arc;
-
-use crate::error::TetronError;
-use rune::alloc::String as RuneString;
-use rune::{Value, runtime::Object};
+use crate::{
+    error::TetronError,
+    utils::{Registrable, RuneString},
+};
+use rune::{ContextError, Module, Value, runtime::Object};
+use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Arc};
 
 enum BehaviourError {
     InvalidProperty(String),
@@ -99,6 +97,24 @@ impl Behaviour {
 #[derive(rune::Any, Debug, Clone)]
 pub struct BehaviourRef(Rc<RefCell<Behaviour>>);
 
+impl Registrable for BehaviourRef {
+    fn register(module: &mut Module) -> Result<(), ContextError> {
+        module.ty::<BehaviourRef>()?;
+        module.function_meta(BehaviourRef::name__meta)?;
+        module.function_meta(BehaviourRef::set__meta)?;
+        module.function_meta(BehaviourRef::get__meta)?;
+        Ok(())
+    }
+}
+
+impl Registrable for BehaviourFactory {
+    fn register(module: &mut Module) -> Result<(), ContextError> {
+        module.ty::<BehaviourFactory>()?;
+        module.function_meta(BehaviourFactory::create__meta)?;
+        Ok(())
+    }
+}
+
 impl BehaviourRef {
     fn new(behaviour: Behaviour) -> Self {
         Self(Rc::new(RefCell::new(behaviour)))
@@ -109,7 +125,7 @@ impl BehaviourRef {
         Ok(self.0.try_borrow()?.name())
     }
 
-    #[rune::function(instance, keep, protocol = GET)]
+    #[rune::function(instance, keep, protocol = SET)]
     pub fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
         self.0.try_borrow_mut()?.set(field, value)
     }

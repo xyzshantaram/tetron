@@ -1,11 +1,9 @@
+use super::{entity::EntityRef, systems::Ctx, world::WorldRef};
+use crate::{error::TetronError, utils::Registrable};
 use rune::{
-    ToValue,
+    ContextError, Module, ToValue,
     runtime::{Function, Object},
 };
-
-use crate::error::TetronError;
-
-use super::{entity::EntityRef, systems::Ctx, world::WorldRef};
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 #[derive(Debug)]
@@ -30,6 +28,15 @@ impl Scene {
 #[derive(Clone, Debug, rune::Any)]
 #[rune(name = Scene)]
 pub struct SceneRef(Rc<RefCell<Scene>>);
+
+impl Registrable for SceneRef {
+    fn register(module: &mut Module) -> Result<(), ContextError> {
+        module.ty::<SceneRef>()?;
+        module.function_meta(SceneRef::spawn__meta)?;
+        module.function_meta(SceneRef::system)?;
+        Ok(())
+    }
+}
 
 impl SceneRef {
     pub fn new(world: WorldRef, config: Object) -> Self {

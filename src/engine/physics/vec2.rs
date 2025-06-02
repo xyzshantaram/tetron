@@ -1,7 +1,8 @@
-use rune::{alloc::fmt::TryWrite, runtime::VmResult, vm_write};
+use crate::utils::Registrable;
+use rune::{ContextError, alloc::fmt::TryWrite, runtime::VmResult, vm_write};
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 #[derive(rune::Any, Copy, Clone, Debug, PartialEq)]
@@ -27,7 +28,7 @@ impl Vec2 {
         Self { x, y }
     }
 
-    #[rune::function(protocol = DISPLAY_FMT, keep)]
+    #[rune::function(protocol = DISPLAY_FMT)]
     pub fn display_fmt(&self, f: &mut rune::runtime::Formatter) -> VmResult<()> {
         vm_write!(f, "Vec2 {{ x: {0}, y: {1} }}", self.x, self.y)
     }
@@ -183,24 +184,20 @@ impl Neg for Vec2 {
     }
 }
 
-// Indexing
-impl Index<usize> for Vec2 {
-    type Output = f64;
-    fn index(&self, i: usize) -> &f64 {
-        match i {
-            0 => &self.x,
-            1 => &self.y,
-            _ => panic!("Vec2 index out of bounds!"),
-        }
-    }
-}
+impl Registrable for Vec2 {
+    fn register(module: &mut rune::Module) -> Result<(), ContextError> {
+        module.ty::<Vec2>()?;
+        module.function_meta(Vec2::add_rune)?;
+        module.function_meta(Vec2::add_assign_rune)?;
+        module.function_meta(Vec2::div_rune)?;
+        module.function_meta(Vec2::div_assign_rune)?;
+        module.function_meta(Vec2::mul_rune)?;
+        module.function_meta(Vec2::mul_assign_rune)?;
+        module.function_meta(Vec2::sub_rune)?;
+        module.function_meta(Vec2::sub_assign_rune)?;
+        module.function_meta(Vec2::partial_eq_rune)?;
+        module.function_meta(Vec2::display_fmt)?;
 
-impl IndexMut<usize> for Vec2 {
-    fn index_mut(&mut self, i: usize) -> &mut f64 {
-        match i {
-            0 => &mut self.x,
-            1 => &mut self.y,
-            _ => panic!("Vec2 index out of bounds!"),
-        }
+        Ok(())
     }
 }

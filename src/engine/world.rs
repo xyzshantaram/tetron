@@ -31,6 +31,21 @@ impl TryClone for WorldRef {
     }
 }
 
+use crate::utils::Registrable;
+use rune::{ContextError, Module};
+
+impl Registrable for WorldRef {
+    fn register(module: &mut Module) -> Result<(), ContextError> {
+        module.ty::<WorldRef>()?;
+        module.function_meta(WorldRef::define_behaviour)?;
+        module.function_meta(WorldRef::behaviour)?;
+        module.function_meta(WorldRef::scene)?;
+        module.function_meta(WorldRef::insert)?;
+        module.function_meta(WorldRef::load_scene)?;
+        Ok(())
+    }
+}
+
 impl WorldRef {
     pub fn new() -> Self {
         Self::default()

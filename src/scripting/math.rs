@@ -1,11 +1,6 @@
-use std::{
-    f64::consts,
-    ops::{Add, Div, Mul, Sub},
-};
-
-use rune::{ContextError, Module, docstring, runtime::Protocol};
-
-use crate::engine::physics::vec2::Vec2;
+use crate::{engine::physics::vec2::Vec2, utils::Registrable};
+use rune::{ContextError, Module, docstring};
+use std::f64::consts;
 
 #[rune::function]
 fn sin(x: f64) -> f64 {
@@ -259,23 +254,7 @@ pub fn module() -> Result<Module, ContextError> {
     module.function_meta(round)?;
     module.function_meta(lerp)?;
 
-    module.ty::<Vec2>()?;
-    module.associated_function::<&rune::runtime::Protocol, _, (Vec2, Vec2), _>(
-        &Protocol::ADD,
-        Vec2::add,
-    )?;
-    module.associated_function::<&rune::runtime::Protocol, _, (Vec2, Vec2), _>(
-        &Protocol::SUB,
-        Vec2::sub,
-    )?;
-    module.associated_function::<&rune::runtime::Protocol, _, (Vec2, Vec2), _>(
-        &Protocol::DIV,
-        Vec2::div,
-    )?;
-    module.associated_function::<&rune::runtime::Protocol, _, (Vec2, Vec2), _>(
-        &Protocol::MUL,
-        Vec2::mul,
-    )?;
+    Vec2::register(&mut module)?;
 
     Ok(module)
 }
