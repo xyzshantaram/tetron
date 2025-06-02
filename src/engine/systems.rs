@@ -38,10 +38,36 @@ impl Ctx {
         Self { world, dt }
     }
 
-    #[rune::function(keep)]
-    fn query(&self, query: Object) -> Result<Vec<EntityRef>, TetronError> {
-        let mut result: Vec<EntityRef> = Vec::new();
+    pub fn query_with_sets(
+        &self,
+        tags: HashSet<String>,
+        behaviours: HashSet<String>,
+    ) -> Result<Vec<EntityRef>, TetronError> {
+        if let Some((_, scene)) = self.world.current_scene()? {
+            let entities = scene.entities();
+            if tags.is_empty() && behaviours.is_empty() {
+                return Ok(entities);
+            }
 
+            let result = entities
+                .into_iter()
+                .filter(|entity| {
+                    let tags_matched = tags.is_empty() || tags.iter().any(|t| entity.has_tag(t));
+                    let behaviours_matched =
+                        behaviours.is_empty() || behaviours.iter().any(|b| entity.has_behaviour(b));
+
+                    tags_matched && behaviours_matched
+                })
+                .collect();
+
+            return Ok(result);
+        }
+
+        Ok(Vec::new())
+    }
+
+    #[rune::function(keep)]
+    pub fn query(&self, query: Object) -> Result<Vec<EntityRef>, TetronError> {
         let parse = |key| -> Result<HashSet<String>, TetronError> {
             Ok(query
                 .get(key)
@@ -53,24 +79,7 @@ impl Ctx {
         let tags = parse("tag")?;
         let behaviours = parse("b")?;
 
-        if let Some((_, scene)) = self.world.current_scene()? {
-            let entities = scene.entities();
-            if tags.is_empty() && behaviours.is_empty() {
-                return Ok(entities);
-            }
-
-            for entity in scene.entities() {
-                let has_tag = tags.is_empty() || tags.iter().any(|t| entity.has_tag(t));
-                let has_behaviour =
-                    behaviours.is_empty() || behaviours.iter().any(|b| entity.has_behaviour(b));
-
-                if has_tag && has_behaviour {
-                    result.push(entity.clone());
-                }
-            }
-        }
-
-        Ok(result)
+        self.query_with_sets(tags, behaviours)
     }
 }
 
