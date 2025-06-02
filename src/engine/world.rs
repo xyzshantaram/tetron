@@ -102,7 +102,7 @@ impl WorldRef {
         Ok(())
     }
 
-    pub fn game_loop(&mut self, dt: f32) -> Result<(), TetronError> {
+    pub fn game_loop(&mut self, dt: f64) -> Result<(), TetronError> {
         self.0.try_borrow_mut()?.game_loop(dt)?;
         Ok(())
     }
@@ -113,7 +113,7 @@ impl WorldRef {
 }
 
 impl World {
-    fn game_loop(&mut self, dt: f32) -> Result<(), TetronError> {
+    fn game_loop(&mut self, dt: f64) -> Result<(), TetronError> {
         if let Some((_, scene)) = &mut self.current_scene {
             scene.update(dt)?;
         }

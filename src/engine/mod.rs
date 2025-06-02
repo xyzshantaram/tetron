@@ -117,7 +117,7 @@ impl TryFrom<TetronArgs> for Game {
 }
 
 impl Game {
-    fn update(&mut self, delta: f32) -> Result<(), TetronError> {
+    fn update(&mut self, delta: f64) -> Result<(), TetronError> {
         if let Some(world) = &mut self.world {
             world.game_loop(delta)?;
         }
@@ -153,7 +153,7 @@ impl Game {
 
         'running: loop {
             let now = Instant::now();
-            let delta = now.duration_since(last_frame).as_secs_f32();
+            let delta = now.duration_since(last_frame).as_secs_f64();
             last_frame = now;
             self.input.write()?.next_frame();
             for event in self.sdl.events.poll_iter() {

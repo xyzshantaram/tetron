@@ -61,8 +61,14 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     Ok(())
 }
 
+#[rune::function]
+fn vec2(x: f64, y: f64) -> Vec2 {
+    Vec2::new(x, y)
+}
+
 pub fn module() -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["game", "physics"])?;
     register_factory(&mut module)?;
+    module.function_meta(vec2)?;
     Ok(module)
 }

@@ -49,7 +49,7 @@ impl SceneRef {
         Ok(())
     }
 
-    pub fn update(&mut self, dt: f32) -> Result<(), TetronError> {
+    pub fn update(&mut self, dt: f64) -> Result<(), TetronError> {
         let scene = self.0.try_borrow_mut()?;
         let ctx = Ctx::new(scene.world.clone(), dt);
         for system in self.0.try_borrow_mut()?.systems.values() {

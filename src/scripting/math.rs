@@ -1,5 +1,5 @@
 use std::{
-    f32::consts,
+    f64::consts,
     ops::{Add, Div, Mul, Sub},
 };
 
@@ -8,102 +8,102 @@ use rune::{ContextError, Module, docstring, runtime::Protocol};
 use crate::engine::physics::vec2::Vec2;
 
 #[rune::function]
-fn sin(x: f32) -> f32 {
+fn sin(x: f64) -> f64 {
     x.sin()
 }
 
 #[rune::function]
-fn cos(x: f32) -> f32 {
+fn cos(x: f64) -> f64 {
     x.cos()
 }
 
 #[rune::function]
-fn tan(x: f32) -> f32 {
+fn tan(x: f64) -> f64 {
     x.tan()
 }
 
 #[rune::function]
-fn asin(x: f32) -> f32 {
+fn asin(x: f64) -> f64 {
     x.asin()
 }
 
 #[rune::function]
-fn acos(x: f32) -> f32 {
+fn acos(x: f64) -> f64 {
     x.acos()
 }
 
 #[rune::function]
-fn atan(x: f32) -> f32 {
+fn atan(x: f64) -> f64 {
     x.atan()
 }
 
 #[rune::function]
-fn atan2(y: f32, x: f32) -> f32 {
+fn atan2(y: f64, x: f64) -> f64 {
     y.atan2(x)
 }
 
 #[rune::function]
-fn sqrt(x: f32) -> f32 {
+fn sqrt(x: f64) -> f64 {
     x.sqrt()
 }
 
 #[rune::function]
-fn abs(x: f32) -> f32 {
+fn abs(x: f64) -> f64 {
     x.abs()
 }
 
 #[rune::function]
-fn signum(x: f32) -> f32 {
+fn signum(x: f64) -> f64 {
     x.signum()
 }
 
 #[rune::function]
-fn min(a: f32, b: f32) -> f32 {
+fn min(a: f64, b: f64) -> f64 {
     a.min(b)
 }
 
 #[rune::function]
-fn max(a: f32, b: f32) -> f32 {
+fn max(a: f64, b: f64) -> f64 {
     a.max(b)
 }
 
 #[rune::function]
-fn clamp(x: f32, min: f32, max: f32) -> f32 {
+fn clamp(x: f64, min: f64, max: f64) -> f64 {
     x.min(max).max(min)
 }
 
 #[rune::function]
-fn pow(x: f32, y: f32) -> f32 {
+fn pow(x: f64, y: f64) -> f64 {
     x.powf(y)
 }
 
 #[rune::function]
-fn exp(x: f32) -> f32 {
+fn exp(x: f64) -> f64 {
     x.exp()
 }
 
 #[rune::function]
-fn ln(x: f32) -> f32 {
+fn ln(x: f64) -> f64 {
     x.ln()
 }
 
 #[rune::function]
-fn floor(x: f32) -> f32 {
+fn floor(x: f64) -> f64 {
     x.floor()
 }
 
 #[rune::function]
-fn ceil(x: f32) -> f32 {
+fn ceil(x: f64) -> f64 {
     x.ceil()
 }
 
 #[rune::function]
-fn round(x: f32) -> f32 {
+fn round(x: f64) -> f64 {
     x.round()
 }
 
 #[rune::function]
-fn lerp(a: f32, b: f32, t: f32) -> f32 {
+fn lerp(a: f64, b: f64, t: f64) -> f64 {
     (1.0 - t) * a + t * b
 }
 

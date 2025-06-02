@@ -5,9 +5,9 @@ use std::ops::{
 #[derive(rune::Any, Copy, Clone, Debug, PartialEq)]
 pub struct Vec2 {
     #[rune(get, set)]
-    pub x: f32,
+    pub x: f64,
     #[rune(get, set)]
-    pub y: f32,
+    pub y: f64,
 }
 
 impl Vec2 {
@@ -16,25 +16,25 @@ impl Vec2 {
 
     #[inline]
     #[rune::function(path = Self::new, keep)]
-    pub fn new(x: f32, y: f32) -> Self {
+    pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
     }
 
     #[inline]
     #[rune::function(keep, instance)]
-    pub fn length(&self) -> f32 {
+    pub fn length(&self) -> f64 {
         self.length_sq().sqrt()
     }
 
     #[inline]
     #[rune::function(keep, instance)]
-    pub fn length_sq(&self) -> f32 {
+    pub fn length_sq(&self) -> f64 {
         self.x * self.x + self.y * self.y
     }
 
     #[inline]
     #[rune::function(keep, instance)]
-    pub fn dot(self, other: Vec2) -> f32 {
+    pub fn dot(self, other: Vec2) -> f64 {
         self.x * other.x + self.y * other.y
     }
 
@@ -47,13 +47,13 @@ impl Vec2 {
 
     #[inline]
     #[rune::function(keep, instance)]
-    pub fn distance(self, b: Vec2) -> f32 {
+    pub fn distance(self, b: Vec2) -> f64 {
         (self - b).length()
     }
 
     #[inline]
     #[rune::function(keep, instance)]
-    pub fn lerp(self, b: Vec2, t: f32) -> Vec2 {
+    pub fn lerp(self, b: Vec2, t: f64) -> Vec2 {
         self + (b - self) * t
     }
 
@@ -107,16 +107,16 @@ impl Div for Vec2 {
 }
 
 // Operator Overloads - Vec2 <op> Scalar
-impl Mul<f32> for Vec2 {
+impl Mul<f64> for Vec2 {
     type Output = Vec2;
-    fn mul(self, rhs: f32) -> Vec2 {
+    fn mul(self, rhs: f64) -> Vec2 {
         Vec2::new(self.x * rhs, self.y * rhs)
     }
 }
 
-impl Div<f32> for Vec2 {
+impl Div<f64> for Vec2 {
     type Output = Vec2;
-    fn div(self, rhs: f32) -> Vec2 {
+    fn div(self, rhs: f64) -> Vec2 {
         Vec2::new(self.x / rhs, self.y / rhs)
     }
 }
@@ -142,8 +142,8 @@ impl MulAssign for Vec2 {
     }
 }
 
-impl MulAssign<f32> for Vec2 {
-    fn mul_assign(&mut self, rhs: f32) {
+impl MulAssign<f64> for Vec2 {
+    fn mul_assign(&mut self, rhs: f64) {
         self.x *= rhs;
         self.y *= rhs;
     }
@@ -156,8 +156,8 @@ impl DivAssign for Vec2 {
     }
 }
 
-impl DivAssign<f32> for Vec2 {
-    fn div_assign(&mut self, rhs: f32) {
+impl DivAssign<f64> for Vec2 {
+    fn div_assign(&mut self, rhs: f64) {
         self.x /= rhs;
         self.y /= rhs;
     }
@@ -173,8 +173,8 @@ impl Neg for Vec2 {
 
 // Indexing
 impl Index<usize> for Vec2 {
-    type Output = f32;
-    fn index(&self, i: usize) -> &f32 {
+    type Output = f64;
+    fn index(&self, i: usize) -> &f64 {
         match i {
             0 => &self.x,
             1 => &self.y,
@@ -184,7 +184,7 @@ impl Index<usize> for Vec2 {
 }
 
 impl IndexMut<usize> for Vec2 {
-    fn index_mut(&mut self, i: usize) -> &mut f32 {
+    fn index_mut(&mut self, i: usize) -> &mut f64 {
         match i {
             0 => &mut self.x,
             1 => &mut self.y,
