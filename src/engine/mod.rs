@@ -9,12 +9,14 @@ use crate::{
 use input::KeyState;
 use sdl2::{event::Event, keyboard::Keycode};
 use std::{
+    collections::HashSet,
     process,
     rc::Rc,
     sync::{Arc, RwLock},
     time::Instant,
 };
 use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
+use systems::Ctx;
 use world::WorldRef;
 
 mod args;
@@ -125,7 +127,24 @@ impl Game {
         Ok(())
     }
 
-    fn draw(&mut self) {}
+    fn draw(&mut self, dt: f64) -> Result<(), TetronError> {
+        if let Some(world) = self.world.clone() {
+            let ctx = Ctx::new(world, dt);
+            let behaviours: HashSet<String> =
+                HashSet::from_iter(["tetron:drawable".to_string(), "tetron:position".to_string()]);
+            let tags = HashSet::new();
+
+            for entity in ctx.query_with_sets(tags, behaviours)? {
+                let drawable = entity
+                    .behaviour("tetron:drawable")
+                    .expect("drawable behaviour missing - this is an engine bug");
+                let position = entity
+                    .behaviour("tetron:position")
+                    .expect("drawable behaviour missing - this is an engine bug");
+            }
+        }
+        Ok(())
+    }
 
     pub fn run(&mut self) -> Result<(), TetronError> {
         let mut last_frame = Instant::now();
@@ -173,7 +192,7 @@ impl Game {
                 .canvas
                 .set_draw_color(sdl2::pixels::Color::RGB(0, 0, 0));
             self.sdl.canvas.clear();
-            self.draw();
+            self.draw(delta)?;
             self.sdl.canvas.present();
         }
 
