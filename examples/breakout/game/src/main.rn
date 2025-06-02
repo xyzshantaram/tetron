@@ -1,3 +1,5 @@
+use ::tetron::log;
+use tetron::config;
 use tetron::{game::{drawable, physics, physics::vec2, transform, shape}, input};
 
 const BALL_RADIUS = 5;
@@ -69,7 +71,7 @@ fn Paddle(scene, x, y) {
 }
 
 fn game_scene(world) {
-    let scene = world.scene(#{ bg: "#120321", gravity: #{ x: 0, y: 0 } });
+    let scene = world.scene(#{ bg: "#120321", gravity: vec2(0.0, 0.0) });
 
     scene.insert(Paddle(scene, 320, 460));
     scene.insert(Ball(scene, 320, 240, 2, -3));
@@ -127,6 +129,10 @@ fn game_over_scene(world) {
 }
 
 pub fn begin(world) {
+    if let Some(identifier) = config::get(["identifier"])? {
+        log::info!(`Running example ${identifier}`);
+    }
+
     world.insert("main", game_scene(world));
     world.insert("menu", menu_scene(world));
     world.insert("game_over", game_over_scene(world));
