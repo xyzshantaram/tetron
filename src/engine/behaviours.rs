@@ -110,12 +110,12 @@ impl BehaviourRef {
     }
 
     #[rune::function(instance, keep, protocol = GET)]
-    fn set_field(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
+    pub fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
         self.0.try_borrow_mut()?.set(field, value)
     }
 
     #[rune::function(instance, keep, protocol = GET)]
-    fn get_field(&self, field: &str) -> Result<Option<Value>, TetronError> {
+    pub fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
         self.0.try_borrow()?.get(field)
     }
 }
