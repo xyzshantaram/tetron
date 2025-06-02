@@ -1,5 +1,7 @@
-use std::ops::{
-    Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign,
+use rune::{alloc::fmt::TryWrite, runtime::VmResult, vm_write};
+use std::{
+    fmt::Display,
+    ops::{Add, AddAssign, Div, DivAssign, Index, IndexMut, Mul, MulAssign, Neg, Sub, SubAssign},
 };
 
 #[derive(rune::Any, Copy, Clone, Debug, PartialEq)]
@@ -10,14 +12,24 @@ pub struct Vec2 {
     pub y: f64,
 }
 
+impl Display for Vec2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Vec2 {{ x: {0}, y: {1} }}", self.x, self.y)
+    }
+}
+
 impl Vec2 {
     pub const ZERO: Vec2 = Vec2 { x: 0.0, y: 0.0 };
     pub const ONE: Vec2 = Vec2 { x: 1.0, y: 1.0 };
 
-    #[inline]
     #[rune::function(path = Self::new, keep)]
     pub fn new(x: f64, y: f64) -> Self {
         Self { x, y }
+    }
+
+    #[rune::function(protocol = DISPLAY_FMT, keep)]
+    pub fn display_fmt(&self, f: &mut rune::runtime::Formatter) -> VmResult<()> {
+        vm_write!(f, "Vec2 {{ x: {0}, y: {1} }}", self.x, self.y)
     }
 
     #[inline]

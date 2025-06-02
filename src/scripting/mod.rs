@@ -59,9 +59,10 @@ pub fn tetron_context(
     input: Arc<RwLock<KeyState>>,
 ) -> Result<Context, TetronError> {
     let mut context = Context::with_config(false)?;
-    for module in tetron_modules(flags, config, Arc::clone(&input))? {
+    for module in tetron_modules(flags, config, input.clone())? {
         context.install(module)?;
     }
+
     Ok(context)
 }
 
