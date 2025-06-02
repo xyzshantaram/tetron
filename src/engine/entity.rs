@@ -35,20 +35,19 @@ impl EntityRef {
     }
 
     #[rune::function]
-    pub fn tag(&mut self, tag: &str) -> Result<(), TetronError> {
-        self.0.try_borrow_mut()?.tags.insert(tag.into());
-        Ok(())
+    pub fn tag(&mut self, tag: &str) {
+        self.0.borrow_mut().tags.insert(tag.into());
     }
 
     #[rune::function(keep)]
-    pub fn has_tag(&self, tag: &str) -> Result<bool, TetronError> {
-        Ok(self.0.try_borrow()?.tags.contains(tag))
+    pub fn has_tag(&self, tag: &str) -> bool {
+        self.0.borrow().tags.contains(tag)
     }
 
     #[rune::function(keep)]
     pub fn attach(&mut self, behaviour: BehaviourRef) -> Result<(), TetronError> {
         let behaviours = &mut self.0.try_borrow_mut()?.behaviours;
-        let name = behaviour.name()?;
+        let name = behaviour.name();
 
         #[allow(clippy::map_entry)]
         if behaviours.contains_key(&name) {
@@ -63,12 +62,12 @@ impl EntityRef {
     }
 
     #[rune::function]
-    pub fn has_behaviour(&self, name: &str) -> Result<bool, TetronError> {
-        Ok(self.0.try_borrow()?.behaviours.contains_key(name))
+    pub fn has_behaviour(&self, name: &str) -> bool {
+        self.0.borrow().behaviours.contains_key(name)
     }
 
     #[rune::function]
-    pub fn behaviour(&self, name: &str) -> Result<Option<BehaviourRef>, TetronError> {
-        Ok(self.0.try_borrow()?.behaviours.get(name).cloned())
+    pub fn behaviour(&self, name: &str) -> Option<BehaviourRef> {
+        self.0.borrow().behaviours.get(name).cloned()
     }
 }

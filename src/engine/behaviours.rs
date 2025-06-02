@@ -121,8 +121,8 @@ impl BehaviourRef {
     }
 
     #[rune::function(keep)]
-    pub fn name(&self) -> Result<String, TetronError> {
-        Ok(self.0.try_borrow()?.name())
+    pub fn name(&self) -> String {
+        self.0.borrow().name()
     }
 
     #[rune::function(instance, keep, protocol = SET)]

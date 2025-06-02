@@ -44,16 +44,15 @@ impl SceneRef {
     }
 
     #[rune::function(keep)]
-    fn spawn(&mut self) -> Result<EntityRef, TetronError> {
+    fn spawn(&mut self) -> EntityRef {
         let entity = EntityRef::new();
-        self.0.try_borrow_mut()?.entities.push(entity.clone());
-        Ok(entity)
+        self.0.borrow_mut().entities.push(entity.clone());
+        entity
     }
 
     #[rune::function(instance)]
-    fn system(&mut self, name: &str, f: Function) -> Result<(), TetronError> {
-        self.0.try_borrow_mut()?.systems.insert(name.to_owned(), f);
-        Ok(())
+    fn system(&mut self, name: &str, f: Function) {
+        self.0.borrow_mut().systems.insert(name.to_owned(), f);
     }
 
     pub fn update(&mut self, dt: f64) -> Result<(), TetronError> {
@@ -68,7 +67,7 @@ impl SceneRef {
         Ok(())
     }
 
-    pub fn entities(&self) -> Result<Vec<EntityRef>, TetronError> {
-        Ok(self.0.try_borrow()?.entities.clone())
+    pub fn entities(&self) -> Vec<EntityRef> {
+        self.0.borrow().entities.clone()
     }
 }
