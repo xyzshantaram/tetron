@@ -4,8 +4,31 @@ use super::{
 };
 use crate::error::TetronError;
 use crate::utils;
-use rune::{ContextError, Module, ToValue, docstring, from_value, runtime::Object};
+use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
 use std::collections::HashSet;
+
+#[rune::function(keep)]
+pub fn rotate(b: &mut BehaviourRef, angle: f64) -> Result<(), TetronError> {
+    let old = if let Some(value) = b.get("rot")? {
+        f64::from_value(value)?
+    } else {
+        0.0
+    };
+    b.set("rot", (old + angle).to_value()?)?;
+    Ok(())
+}
+
+#[rune::function(keep)]
+pub fn translate(b: &mut BehaviourRef, delta: Vec2) -> Result<(), TetronError> {
+    let current_pos = if let Some(value) = b.get("pos")? {
+        Vec2::from_value(value)?
+    } else {
+        Vec2::zero()
+    };
+    let new_pos = current_pos + delta;
+    b.set("pos", new_pos.to_value()?)?;
+    Ok(())
+}
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     let transform = BehaviourFactory::new(
@@ -47,5 +70,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
 pub fn module() -> Result<Module, ContextError> {
     let mut module = Module::with_crate_item("tetron", ["game", "transform"])?;
     register_factory(&mut module)?;
+    module.function_meta(translate__meta)?;
+    module.function_meta(rotate__meta)?;
     Ok(module)
 }
