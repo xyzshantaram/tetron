@@ -32,7 +32,7 @@ pub fn translate(b: &mut BehaviourRef, delta: Vec2) -> Result<(), TetronError> {
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     let transform = BehaviourFactory::new(
         "transform",
-        HashSet::from(["x".into(), "y".into(), "rot".into()]),
+        HashSet::from(["pos".into(), "rot".into()]),
         true,
     );
 
@@ -40,17 +40,15 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
         let pos = obj
             .get("pos")
             .cloned()
-            .unwrap_or(Vec2::new(0.0, 0.0).to_value()?)
-            .to_value()?;
+            .unwrap_or(Vec2::new(0.0, 0.0).to_value()?);
         let rot = obj
             .get("rot")
             .and_then(|v| v.as_float().ok())
-            .unwrap_or(0.0)
-            .to_value()?;
+            .unwrap_or(0.0);
 
         let mut val = Object::new();
         val.insert(utils::rune::obj_key("pos")?, pos)?;
-        val.insert(utils::rune::obj_key("rot")?, rot)?;
+        val.insert(utils::rune::obj_key("rot")?, rot.into())?;
 
         transform.create(val)
     };
