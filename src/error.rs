@@ -63,7 +63,7 @@ impl From<EmitError> for TetronError {
 
 impl From<VmError> for TetronError {
     fn from(value: VmError) -> Self {
-        TetronError::Runtime(format!("fatal scripting runtime error: {value}"))
+        TetronError::Runtime(format!("scripting error: {value}"))
     }
 }
 
