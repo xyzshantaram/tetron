@@ -2,7 +2,7 @@ use crate::{
     error::TetronError,
     utils::{Registrable, RuneString},
 };
-use rune::{ContextError, Module, Value, runtime::Object};
+use rune::{ContextError, FromValue, Module, Value, runtime::Object};
 use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Arc};
 
 enum BehaviourError {
@@ -127,11 +127,19 @@ impl BehaviourRef {
 
     #[rune::function(instance, keep, protocol = SET)]
     pub fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
-        self.0.try_borrow_mut()?.set(field, value)
+        self.0.borrow_mut().set(field, value)
     }
 
     #[rune::function(instance, keep, protocol = GET)]
     pub fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
-        self.0.try_borrow()?.get(field)
+        self.0.borrow().get(field)
+    }
+
+    pub fn get_typed<T: FromValue>(&self, field: &str) -> Result<Option<T>, TetronError> {
+        if let Some(val) = self.0.borrow().get(field)? {
+            Ok(Some(T::from_value(val)?))
+        } else {
+            Ok(None)
+        }
     }
 }
