@@ -19,7 +19,9 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
 
     let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
         let copy = utils::rune::clone_obj(obj)?;
-        drawable.create(copy)
+        drawable
+            .create(copy)
+            .inspect_err(|e| println!("error building drawable: {e}"))
     };
 
     module.function("create", func).build()?.docs(docstring! {
