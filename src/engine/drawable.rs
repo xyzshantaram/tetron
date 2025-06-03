@@ -1,6 +1,6 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
 use crate::{error::TetronError, utils};
-use rune::{ContextError, Module, docstring, runtime::Object};
+use rune::{ContextError, Module, TypeHash, docstring, runtime::Object};
 use std::collections::HashSet;
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
@@ -18,6 +18,24 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     );
 
     let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
+        for field in ["color", "stroke", "fill", "text"] {
+            if let Some(v) = obj.get(field) {
+                if v.type_hash() != String::HASH {
+                    return Err(TetronError::Runtime(
+                        "Drawable field '{field}' must be a string!".into(),
+                    ));
+                }
+            }
+        }
+
+        if let Some(font_val) = obj.get("font") {
+            if font_val.type_hash() != Object::HASH {
+                return Err(TetronError::Runtime(
+                    "Drawable field 'font' must be an object".into(),
+                ));
+            }
+        }
+
         let copy = utils::rune::clone_obj(obj)?;
         drawable
             .create(copy)
