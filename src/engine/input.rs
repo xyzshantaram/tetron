@@ -82,7 +82,7 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
 
     module
         .function("is_down", {
-            let input = Arc::clone(&input);
+            let input = input.clone();
             move |k: &str| -> Result<bool, TetronError> {
                 let guard = input.read()?;
                 Ok(guard.is_down(k))
@@ -98,7 +98,7 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
 
     module
         .function("just_pressed", {
-            let input = Arc::clone(&input);
+            let input = input.clone();
             move |k: &str| -> Result<bool, TetronError> {
                 let guard = input.read()?;
                 Ok(guard.just_pressed(k))
@@ -114,7 +114,7 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
 
     module
         .function("just_released", {
-            let input = Arc::clone(&input);
+            let input = input.clone();
             move |k: &str| -> Result<bool, TetronError> {
                 let guard = input.read()?;
                 Ok(guard.just_released(k))
@@ -130,7 +130,7 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
 
     module
         .function("is_held", {
-            let input = Arc::clone(&input);
+            let input = input.clone();
             move |k: &str| -> Result<bool, TetronError> {
                 let guard = input.read()?;
                 Ok(guard.is_held(k))
