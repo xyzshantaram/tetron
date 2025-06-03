@@ -60,8 +60,8 @@ impl SceneRef {
         let ctx = Ctx::new(scene.world.clone(), dt);
         for system in scene.systems.values() {
             system
-                .call::<Result<(), TetronError>>((ctx.clone().to_value()?,))
-                .expect("Unrecoverable error updating scene")?;
+                .call::<()>((ctx.clone().to_value()?,))
+                .into_result()?;
         }
 
         Ok(())
