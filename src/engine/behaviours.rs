@@ -2,7 +2,7 @@ use crate::{
     error::TetronError,
     utils::{Registrable, RuneString},
 };
-use rune::{ContextError, FromValue, Module, Value, runtime::Object};
+use rune::{ContextError, FromValue, Module, Value, alloc::clone::TryClone, runtime::Object};
 use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Arc};
 
 enum BehaviourError {
@@ -86,7 +86,11 @@ impl Behaviour {
     #[allow(dead_code)]
     fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
         self.check_field(field)?;
-        Ok(self.config.get(field).cloned())
+        if let Some(val) = self.config.get(field) {
+            Ok(Some(val.try_clone()?))
+        } else {
+            Ok(None)
+        }
     }
 
     fn name(&self) -> String {
