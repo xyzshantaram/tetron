@@ -2,11 +2,11 @@ use ::tetron::log;
 use tetron::config;
 use tetron::{game::{drawable, physics, physics::vec2, transform, shape}, input};
 
-const BALL_RADIUS = 5;
-const PADDLE_W = 80;
-const PADDLE_H = 10;
-const BRICK_W = 60;
-const BRICK_H = 20;
+const BALL_RADIUS = 5.0;
+const PADDLE_W = 80.0;
+const PADDLE_H = 10.0;
+const BRICK_W = 60.0;
+const BRICK_H = 20.0;
 const WALL_COLOR = "#333";
 const BRICK_COLOR = "#ff6600";
 
@@ -35,7 +35,7 @@ fn Brick(scene, x, y) {
     brick.attach(transform::create(#{ pos: vec2(x, y) })?);
 }
 
-fn out_of_bounds_system(ctx, _dt) {
+fn out_of_bounds_system(ctx) {
     for ball in ctx.query(#{ tag: ["ball"] }) {
         let pos = ball.behaviour("tetron:physics")?.pos;
         if (pos.y >= 480) {
@@ -44,13 +44,13 @@ fn out_of_bounds_system(ctx, _dt) {
     }
 }
 
-fn paddle_input_system(ctx, _dt) {
+fn paddle_input_system(ctx) {
     for ent in ctx.query(#{ tag: ["paddle"] }) {
         let b = ent.behaviour("tetron:physics")?;
         if (input::just_released("KeyRight")) {
-            physics::apply_force(b, #{ x: 1, y: 0 });
+            physics::apply_force(b, vec2(1, 0));
         } else if (input::is_down("KeyLeft")) {
-            physics::apply_force(b, #{ x: -1, y: 0 });
+            physics::apply_force(b, vec2(-1, 0));
         } else {
             b.vel.x = 0;
         }
@@ -68,16 +68,15 @@ fn Paddle(scene, x, y) {
 
 fn setup_game_scene(world) {
     let scene = world.scene("game", #{ bg: "#120321", gravity: vec2(0.0, 0.0) })?;
-
-    Paddle(scene, 320, 460);
-    Ball(scene, 320, 240);
-    Wall(scene, 0, 0, 640, 10);
-    Wall(scene, 0, 0, 10, 480);
-    Wall(scene, 630, 0, 10, 480);
+    Paddle(scene, 320.0, 460.0);
+    Ball(scene, 320.0, 240.0);
+    Wall(scene, 0.0, 0.0, 640.0, 10.0);
+    Wall(scene, 0.0, 0.0, 10.0, 480.0);
+    Wall(scene, 630.0, 0.0, 10.0, 480.0);
     for row in 0..5 {
         for col in 0..10 {
-            let x = 20 + col * (BRICK_W + 2);
-            let y = 40 + row * (BRICK_H + 2);
+            let x = 20.0 + col as f64 * (BRICK_W + 2.0);
+            let y = 40.0 + row as f64 * (BRICK_H + 2.0);
             Brick(scene, x, y);
         }
     }
@@ -85,7 +84,7 @@ fn setup_game_scene(world) {
     scene.system("out-of-bounds", out_of_bounds_system);
 }
 
-fn menu_input_system(ctx, _dt) {
+fn menu_input_system(ctx) {
     if (input::just_released("Space")) {
         ctx.world.load_scene("main");
     }
@@ -93,15 +92,15 @@ fn menu_input_system(ctx, _dt) {
 
 fn setup_menu_scene(world) {
     let scene = world.scene("menu", #{ bg: "#000000" })?;
-
     let label = scene.spawn();
-    label.attach(drawable::create(#{ text: "Press SPACE to Start", size: 24, color: "#ffffff" })?);
-    label.attach(transform::create(#{ x: 200, y: 220 })?);
-
+    label.attach(
+        drawable::create(#{ text: "Press SPACE to Start", font: #{ size: 24.0 }, color: "#ffffff" })?,
+    );
+    label.attach(transform::create(#{ pos: vec2(240.0, 200.0) })?);
     scene.system("update", menu_input_system);
 }
 
-fn game_over_input_system(ctx, _dt) {
+fn game_over_input_system(ctx) {
     if (input::just_released("r")) {
         ctx.world.load_scene("main");
     }
@@ -111,12 +110,12 @@ fn game_over_scene(world) {
     let scene = world.scene("game_over", #{ bg: "#120321" })?;
 
     let label = scene.spawn();
-    label.attach(transform::create(#{ x: 240, y: 200 })?);
+    label.attach(transform::create(#{ pos: vec2(240.0, 200.0) })?);
     label.attach(drawable::create(#{ text: "Game Over", font: #{ size: 32 }, color: "#ff0000" })?);
 
     let prompt = scene.spawn();
     prompt.attach(drawable::create(#{ text: "Press R to Restart", font: #{ size: 20 }, color: "#ffffff" })?);
-    prompt.attach(transform::create(#{ x: 230, y: 260 })?);
+    prompt.attach(transform::create(#{ pos: vec2(230.0, 260.0) })?);
 
     scene.system("update", game_over_input_system);
 }
