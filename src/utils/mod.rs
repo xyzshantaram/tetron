@@ -39,23 +39,29 @@ pub trait Registrable {
     fn register(module: &mut Module) -> Result<(), ContextError>;
 }
 
-pub fn parse_hex_color(hex: &str) -> Option<sdl2::pixels::Color> {
+pub fn parse_hex_color(hex: &str, fallback: sdl2::pixels::Color) -> sdl2::pixels::Color {
     let hex = hex.trim_start_matches('#');
     match hex.len() {
-        6 => u32::from_str_radix(hex, 16).ok().map(|rgb| {
-            sdl2::pixels::Color::RGB(
-                ((rgb >> 16) & 0xFF) as u8,
-                ((rgb >> 8) & 0xFF) as u8,
-                (rgb & 0xFF) as u8,
-            )
-        }),
-        3 => u16::from_str_radix(hex, 16).ok().map(|rgb| {
-            sdl2::pixels::Color::RGB(
-                (((rgb >> 8) & 0xF) * 17) as u8,
-                (((rgb >> 4) & 0xF) * 17) as u8,
-                ((rgb & 0xF) * 17) as u8,
-            )
-        }),
-        _ => None,
+        6 => u32::from_str_radix(hex, 16)
+            .ok()
+            .map(|rgb| {
+                sdl2::pixels::Color::RGB(
+                    ((rgb >> 16) & 0xFF) as u8,
+                    ((rgb >> 8) & 0xFF) as u8,
+                    (rgb & 0xFF) as u8,
+                )
+            })
+            .unwrap_or(fallback),
+        3 => u16::from_str_radix(hex, 16)
+            .ok()
+            .map(|rgb| {
+                sdl2::pixels::Color::RGB(
+                    (((rgb >> 8) & 0xF) * 17) as u8,
+                    (((rgb >> 4) & 0xF) * 17) as u8,
+                    ((rgb & 0xF) * 17) as u8,
+                )
+            })
+            .unwrap_or(fallback),
+        _ => fallback,
     }
 }
