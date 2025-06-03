@@ -57,8 +57,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
         /// Create a new transform behaviour. All fields are optional and default to zero if not specified.
         ///
         /// Possible fields:
-        /// * x: f64
-        /// * y: f64
+        /// * pos: Vec2
         /// * rot: f64
     })?;
     Ok(())
