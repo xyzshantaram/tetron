@@ -54,7 +54,7 @@ impl Ctx {
                 .filter(|entity| {
                     let tags_matched = tags.is_empty() || tags.iter().any(|t| entity.has_tag(t));
                     let behaviours_matched =
-                        behaviours.is_empty() || behaviours.iter().any(|b| entity.has_behaviour(b));
+                        behaviours.is_empty() || behaviours.iter().all(|b| entity.has_behaviour(b));
 
                     tags_matched && behaviours_matched
                 })
