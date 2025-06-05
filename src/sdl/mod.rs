@@ -1,6 +1,7 @@
-use sdl2::{AudioSubsystem, EventPump, Sdl, VideoSubsystem, render::Canvas, video::Window};
+use sdl2::{AudioSubsystem, EventPump, Sdl, VideoSubsystem, render::Canvas, video::Window, ttf::Sdl2TtfContext};
+use std::collections::HashMap;
 
-use crate::error::TetronError;
+use crate::{error::TetronError, fs::SimpleFs};
 
 pub struct TetronSdlHandle {
     pub(crate) context: Sdl,
@@ -8,6 +9,8 @@ pub struct TetronSdlHandle {
     pub(crate) audio: AudioSubsystem,
     pub(crate) canvas: Canvas<Window>,
     pub(crate) events: EventPump,
+    pub(crate) ttf_context: Sdl2TtfContext,
+    pub(crate) font_data: HashMap<String, Vec<u8>>,
 }
 
 impl TetronSdlHandle {
@@ -23,6 +26,8 @@ impl TetronSdlHandle {
 
         let canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
         let events = context.event_pump()?;
+        let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+        let font_data = HashMap::new();
 
         Ok(Self {
             context,
@@ -30,6 +35,16 @@ impl TetronSdlHandle {
             audio,
             canvas,
             events,
+            ttf_context,
+            font_data,
         })
+    }
+
+    pub fn load_fonts(&mut self, font_list: &[(String, String)], fs: &dyn SimpleFs) -> Result<(), TetronError> {
+        for (name, path) in font_list {
+            let font_data = fs.open_file(path)?;
+            self.font_data.insert(name.clone(), font_data);
+        }
+        Ok(())
     }
 }
