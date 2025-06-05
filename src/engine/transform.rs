@@ -2,8 +2,8 @@ use super::{
     behaviours::{BehaviourFactory, BehaviourRef},
     physics::vec2::Vec2,
 };
-use crate::error::TetronError;
-use rune::{ContextError, FromValue, Module, ToValue, Value, docstring, runtime::Object};
+use crate::{error::TetronError, utils::typed_value::TypedValue};
+use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
 use std::collections::{HashMap, HashSet};
 
 #[rune::function(keep)]
@@ -46,9 +46,9 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
             .and_then(|v| v.as_float().ok())
             .unwrap_or(0.0);
 
-        let mut val = HashMap::<String, Value>::new();
-        val.insert("pos".into(), pos);
-        val.insert("rot".into(), rot.into());
+        let mut val = HashMap::<String, TypedValue>::new();
+        val.insert("pos".into(), pos.try_into()?);
+        val.insert("rot".into(), rot.try_into()?);
 
         transform.with_map(val)
     };

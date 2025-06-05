@@ -1,5 +1,6 @@
 use std::{
     cell::{BorrowError, BorrowMutError},
+    convert::Infallible,
     sync::{PoisonError, RwLockReadGuard, RwLockWriteGuard},
 };
 
@@ -64,6 +65,12 @@ impl From<EmitError> for TetronError {
 impl From<VmError> for TetronError {
     fn from(value: VmError) -> Self {
         TetronError::Runtime(format!("scripting error: {value}"))
+    }
+}
+
+impl From<Infallible> for TetronError {
+    fn from(x: Infallible) -> TetronError {
+        match x {}
     }
 }
 

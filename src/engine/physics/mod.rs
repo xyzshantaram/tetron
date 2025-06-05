@@ -1,5 +1,5 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::error::TetronError;
+use crate::{error::TetronError, utils::typed_value::TypedValue};
 use rune::{ContextError, FromValue, Module, ToValue, Value, docstring, runtime::Object};
 use std::collections::{HashMap, HashSet};
 use vec2::Vec2;
@@ -46,10 +46,10 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
                 mass.replace(f64::INFINITY);
             }
 
-            let mut map = HashMap::<String, Value>::new();
-            map.insert("vel".into(), vel.to_value()?);
-            map.insert("collision".into(), collision.to_value()?);
-            map.insert("mass".into(), mass.unwrap_or(-1.0).into());
+            let mut map = HashMap::<String, TypedValue>::new();
+            map.insert("vel".into(), vel.try_into()?);
+            map.insert("collision".into(), collision.try_into()?);
+            map.insert("mass".into(), mass.unwrap_or(-1.0).try_into()?);
 
             map
         })

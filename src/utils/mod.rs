@@ -12,6 +12,9 @@ pub fn resolve_physical_fs_path(path: &Path) -> Result<PathBuf, anyhow::Error> {
 }
 
 pub type RuneString = ::rune::alloc::String;
+pub type RuneVec = ::rune::runtime::Vec;
+
+pub mod typed_value;
 
 pub mod rune {
     use super::RuneString;

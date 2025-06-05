@@ -1,5 +1,8 @@
-use crate::{error::TetronError, utils::Registrable};
-use rune::{ContextError, FromValue, Module, Value, alloc::clone::TryClone, runtime::Object};
+use crate::{
+    error::TetronError,
+    utils::{Registrable, typed_value::TypedValue},
+};
+use rune::{ContextError, FromValue, Module, Value, runtime::Object};
 use std::{
     cell::RefCell,
     collections::{HashMap, HashSet},
@@ -25,7 +28,7 @@ impl From<BehaviourError> for TetronError {
 pub struct Behaviour {
     pub(crate) name: String,
     #[allow(dead_code)] // used in impl Behaviour
-    pub(crate) config: HashMap<String, Value>,
+    pub(crate) config: HashMap<String, TypedValue>,
     #[allow(dead_code)] // used in impl Behaviour
     pub(crate) fields: Arc<HashSet<String>>,
 }
@@ -46,7 +49,7 @@ impl BehaviourFactory {
         }
     }
 
-    pub fn with_map(&self, map: HashMap<String, Value>) -> Result<BehaviourRef, TetronError> {
+    pub fn with_map(&self, map: HashMap<String, TypedValue>) -> Result<BehaviourRef, TetronError> {
         // Check all keys are valid
         for key in map.keys() {
             if !self.keys.contains(key.as_str()) {
@@ -67,10 +70,10 @@ impl BehaviourFactory {
 
     #[rune::function(keep)]
     pub fn create(&self, config: &Object) -> Result<BehaviourRef, TetronError> {
-        let mut map = HashMap::<String, Value>::new();
+        let mut map = HashMap::<String, TypedValue>::new();
         for key in config.keys() {
             if let Some(val) = config.get(key) {
-                map.insert(key.as_str().to_string(), val.try_clone()?);
+                map.insert(key.as_str().to_string(), val.try_into()?);
             }
         }
         self.with_map(map)
@@ -90,7 +93,7 @@ impl Behaviour {
     #[allow(dead_code)]
     fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
         self.check_field(field)?;
-        self.config.insert(field.into(), value);
+        self.config.insert(field.into(), TryInto::try_into(&value)?);
         Ok(())
     }
 
@@ -98,7 +101,7 @@ impl Behaviour {
     fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
         self.check_field(field)?;
         if let Some(val) = self.config.get(field) {
-            Ok(Some(val.try_clone()?))
+            Ok(Some(val.try_into()?))
         } else {
             Ok(None)
         }
