@@ -1,5 +1,8 @@
-use sdl2::{AudioSubsystem, EventPump, Sdl, VideoSubsystem, render::Canvas, video::Window, ttf::Sdl2TtfContext};
-use std::collections::HashMap;
+use sdl2::{
+    AudioSubsystem, EventPump, Sdl, VideoSubsystem, render::Canvas, ttf::Sdl2TtfContext,
+    video::Window,
+};
+use std::{collections::HashMap, rc::Rc};
 
 use crate::{error::TetronError, fs::SimpleFs};
 
@@ -40,7 +43,11 @@ impl TetronSdlHandle {
         })
     }
 
-    pub fn load_fonts(&mut self, font_list: &[(String, String)], fs: &dyn SimpleFs) -> Result<(), TetronError> {
+    pub fn load_fonts(
+        &mut self,
+        font_list: &[(String, String)],
+        fs: Rc<dyn SimpleFs>,
+    ) -> Result<(), TetronError> {
         for (name, path) in font_list {
             let font_data = fs.open_file(path)?;
             self.font_data.insert(name.clone(), font_data);

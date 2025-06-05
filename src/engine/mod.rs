@@ -1,8 +1,7 @@
 use crate::{
     error::TetronError,
     fs::{SimpleFs, overlay_fs::OverlayFs, to_vfs_layer},
-    scripting,
-    scripting::TetronScripting,
+    scripting::{self, TetronScripting},
     sdl::TetronSdlHandle,
     utils::resolve_physical_fs_path,
 };
@@ -15,7 +14,7 @@ use std::{
     sync::{Arc, RwLock},
     time::Instant,
 };
-use stupid_simple_kv::{IntoKey, Kv, KvBackend, MemoryBackend, SqliteBackend};
+use stupid_simple_kv::{IntoKey, Kv, KvBackend, KvValue, MemoryBackend, SqliteBackend};
 use systems::Ctx;
 use world::WorldRef;
 
@@ -40,6 +39,22 @@ pub struct Game {
     scripting: TetronScripting,
     world: Option<WorldRef>,
     input: Arc<RwLock<KeyState>>,
+}
+
+fn parse_fonts_from_config(config: &Arc<Kv>) -> Vec<(String, String)> {
+    let mut fonts = Vec::new();
+    if let Ok(Some(KvValue::Array(list))) = config.get(&("fonts",)) {
+        for font in list {
+            if let KvValue::Object(cfg) = font {
+                if let (Some(KvValue::String(name)), Some(KvValue::String(path))) =
+                    (cfg.get("name"), cfg.get("path"))
+                {
+                    fonts.push((name.clone(), path.clone()));
+                }
+            }
+        }
+    }
+    fonts
 }
 
 impl Game {
@@ -70,7 +85,9 @@ impl Game {
             .unwrap_or(identifier.clone().into())
             .try_into()?;
 
-        let sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
+        let fonts_to_load = parse_fonts_from_config(&config);
+        let mut sdl = TetronSdlHandle::new(&title, width.try_into()?, height.try_into()?)?;
+        sdl.load_fonts(&fonts_to_load, fs.clone())?;
         let input = Arc::new(RwLock::new(KeyState::new()));
         let scripting =
             TetronScripting::new(fs.clone(), flags, config.clone(), Arc::clone(&input))?;
@@ -130,17 +147,16 @@ impl Game {
     fn draw(&mut self, dt: f64) -> Result<(), TetronError> {
         if let Some(world) = self.world.clone() {
             let ctx = Ctx::new(world, dt);
-            let behaviours: HashSet<String> =
-                HashSet::from_iter(["tetron:drawable".to_string(), "tetron:position".to_string()]);
+            let behaviours: HashSet<String> = HashSet::from_iter([
+                "tetron:drawable".to_string(),
+                "tetron:transform".to_string(),
+            ]);
             let tags = HashSet::new();
+            let queried = ctx.query_with_sets(tags, behaviours)?;
+            println!("Beginning draw of {} entities", queried.len());
 
-            for entity in ctx.query_with_sets(tags, behaviours)? {
-                let drawable = entity
-                    .behaviour("tetron:drawable")
-                    .expect("drawable behaviour missing - this is an engine bug");
-                let position = entity
-                    .behaviour("tetron:position")
-                    .expect("drawable behaviour missing - this is an engine bug");
+            for entity in queried {
+                todo!()
             }
         }
         Ok(())
