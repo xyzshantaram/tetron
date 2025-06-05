@@ -1,5 +1,5 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::{error::TetronError, utils};
+use crate::error::TetronError;
 use rune::{ContextError, Module, TypeHash, docstring, runtime::Object};
 use std::collections::HashSet;
 
@@ -36,9 +36,8 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
             }
         }
 
-        let copy = utils::rune::clone_obj(obj)?;
         drawable
-            .create(copy)
+            .create(obj)
             .inspect_err(|e| println!("error building drawable: {e}"))
     };
 
