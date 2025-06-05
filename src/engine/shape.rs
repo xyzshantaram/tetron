@@ -1,5 +1,5 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::{engine::physics::vec2::Vec2, error::TetronError, utils};
+use crate::{engine::physics::vec2::Vec2, error::TetronError};
 use rune::{
     ContextError, Module, ToValue, TypeHash, Value, alloc::clone::TryClone, docstring,
     runtime::Object,
