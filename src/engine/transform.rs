@@ -2,9 +2,9 @@ use super::{
     behaviours::{BehaviourFactory, BehaviourRef},
     physics::vec2::Vec2,
 };
-use crate::{error::TetronError, utils};
-use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
-use std::collections::HashSet;
+use crate::error::TetronError;
+use rune::{ContextError, FromValue, Module, ToValue, Value, docstring, runtime::Object};
+use std::collections::{HashMap, HashSet};
 
 #[rune::function(keep)]
 pub fn rotate(b: &mut BehaviourRef, angle: f64) -> Result<(), TetronError> {
@@ -46,11 +46,11 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
             .and_then(|v| v.as_float().ok())
             .unwrap_or(0.0);
 
-        let mut val = Object::new();
-        val.insert(utils::rune::obj_key("pos")?, pos)?;
-        val.insert(utils::rune::obj_key("rot")?, rot.into())?;
+        let mut val = HashMap::<String, Value>::new();
+        val.insert("pos".into(), pos);
+        val.insert("rot".into(), rot.into());
 
-        transform.create(val)
+        transform.with_map(val)
     };
 
     module.function("create", func).build()?.docs(docstring! {

@@ -1,7 +1,7 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::{error::TetronError, utils};
-use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
-use std::collections::HashSet;
+use crate::error::TetronError;
+use rune::{ContextError, FromValue, Module, ToValue, Value, docstring, runtime::Object};
+use std::collections::{HashMap, HashSet};
 use vec2::Vec2;
 
 pub mod vec2;
@@ -14,7 +14,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     );
 
     let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-        physics.create({
+        physics.with_map({
             let vel = match obj.get("vel") {
                 Some(value) => Vec2::from_value(value.clone())?,
                 None => Vec2::zero(),
@@ -46,11 +46,12 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
                 mass.replace(f64::INFINITY);
             }
 
-            let mut val = Object::new();
-            val.insert(utils::rune::obj_key("vel")?, vel.to_value()?)?;
-            val.insert(utils::rune::obj_key("collision")?, collision.to_value()?)?;
-            val.insert(utils::rune::obj_key("mass")?, mass.unwrap_or(-1.0).into())?;
-            val
+            let mut map = HashMap::<String, Value>::new();
+            map.insert("vel".into(), vel.to_value()?);
+            map.insert("collision".into(), collision.to_value()?);
+            map.insert("mass".into(), mass.unwrap_or(-1.0).into());
+
+            map
         })
     };
 
