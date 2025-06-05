@@ -3,5 +3,9 @@
     "entrypoint": "src/main.rn",
     "sdl:width": 800,
     "sdl:height": 600,
-    "sdl:title": "Breakout"
+    "sdl:title": "Breakout",
+    "fonts": [
+        { "name": "RobotoRegular", "path": "assets/fonts/Roboto-Regular.ttf" },
+        { "name": "RobotoBold", "path": "assets/fonts/Roboto-Bold.ttf" }
+    ]
 }
