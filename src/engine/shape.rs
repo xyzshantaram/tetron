@@ -1,7 +1,10 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
 use crate::{engine::physics::vec2::Vec2, error::TetronError, utils};
-use rune::{ContextError, Module, ToValue, TypeHash, Value, docstring, runtime::Object};
-use std::collections::HashSet;
+use rune::{
+    ContextError, Module, ToValue, TypeHash, Value, alloc::clone::TryClone, docstring,
+    runtime::Object,
+};
+use std::collections::{HashMap, HashSet};
 
 fn is_points_array_invalid<'a>(
     count: usize,
@@ -66,12 +69,12 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     let func = move |name: &str, config: &Object| -> Result<BehaviourRef, TetronError> {
         if matches!(name, "rect" | "poly" | "line" | "circle") {
             if shape_cfg_validator(name)(config) {
-                let mut config = utils::rune::clone_obj(config)?;
-                config.insert(
-                    utils::rune::obj_key("type")?,
-                    utils::rune::obj_key(name)?.to_value()?,
-                )?;
-                Ok(shapes.create(config)?)
+                let mut map = HashMap::<String, Value>::new();
+                for (key, val) in config {
+                    map.insert(key.as_str().to_string(), val.try_clone()?);
+                }
+                map.insert("type".into(), String::from(name).to_value()?);
+                shapes.with_map(map)
             } else {
                 Err(TetronError::Runtime(format!(
                     "Invalid shape initializer supplied for shape '{name}'"
