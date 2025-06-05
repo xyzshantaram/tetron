@@ -13,6 +13,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
             "text".into(),
             "stroke".into(),
             "fill".into(),
+            "sprite".into(),
         ]),
         true,
     );
