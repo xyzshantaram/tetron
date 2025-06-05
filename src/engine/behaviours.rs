@@ -1,9 +1,11 @@
-use crate::{
-    error::TetronError,
-    utils::{Registrable, RuneString},
-};
+use crate::{error::TetronError, utils::Registrable};
 use rune::{ContextError, FromValue, Module, Value, alloc::clone::TryClone, runtime::Object};
-use std::{cell::RefCell, collections::HashSet, rc::Rc, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::{HashMap, HashSet},
+    rc::Rc,
+    sync::Arc,
+};
 
 enum BehaviourError {
     InvalidProperty(String),
@@ -23,7 +25,7 @@ impl From<BehaviourError> for TetronError {
 pub struct Behaviour {
     pub(crate) name: String,
     #[allow(dead_code)] // used in impl Behaviour
-    pub(crate) config: Object,
+    pub(crate) config: HashMap<String, Value>,
     #[allow(dead_code)] // used in impl Behaviour
     pub(crate) fields: Arc<HashSet<String>>,
 }
@@ -44,25 +46,34 @@ impl BehaviourFactory {
         }
     }
 
-    #[rune::function(keep)]
-    pub fn create(&self, config: Object) -> Result<BehaviourRef, TetronError> {
-        for name in config.keys() {
-            if !self.keys.contains(name.as_str()) {
-                return Err(BehaviourError::InvalidProperty(name.to_string()).into());
+    pub fn with_map(&self, map: HashMap<String, Value>) -> Result<BehaviourRef, TetronError> {
+        // Check all keys are valid
+        for key in map.keys() {
+            if !self.keys.contains(key.as_str()) {
+                return Err(BehaviourError::InvalidProperty(key.to_string()).into());
             }
         }
-
         let name = if self.internal {
             String::from("tetron:") + &self.name
         } else {
             self.name.clone()
         };
-
         Ok(BehaviourRef::new(Behaviour {
             name,
-            config,
+            config: map,
             fields: self.keys.clone(),
         }))
+    }
+
+    #[rune::function(keep)]
+    pub fn create(&self, config: &Object) -> Result<BehaviourRef, TetronError> {
+        let mut map = HashMap::<String, Value>::new();
+        for key in config.keys() {
+            if let Some(val) = config.get(key) {
+                map.insert(key.as_str().to_string(), val.try_clone()?);
+            }
+        }
+        self.with_map(map)
     }
 }
 
@@ -79,7 +90,7 @@ impl Behaviour {
     #[allow(dead_code)]
     fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
         self.check_field(field)?;
-        self.config.insert(RuneString::try_from(field)?, value)?;
+        self.config.insert(field.into(), value);
         Ok(())
     }
 
