@@ -156,7 +156,14 @@ impl Game {
             println!("Beginning draw of {} entities", queried.len());
 
             for entity in queried {
-                todo!()
+                let drawable = match entity.behaviour("tetron:drawable") {
+                    Some(d) => d,
+                    None => continue,
+                };
+                let transform = match entity.behaviour("tetron:transform") {
+                    Some(t) => t,
+                    None => continue,
+                };
             }
         }
         Ok(())
