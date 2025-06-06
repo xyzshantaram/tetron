@@ -66,7 +66,7 @@ impl TryFrom<&TypedValue> for Value {
             TypedValue::Object(map) => {
                 let mut obj = Object::new();
                 for (key, value) in map {
-                    obj.insert(RuneString::try_from(key.as_str())?, value.try_into()?);
+                    obj.insert(RuneString::try_from(key.as_str())?, value.try_into()?)?;
                 }
 
                 Ok(obj.to_value()?)
