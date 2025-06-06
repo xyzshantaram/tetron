@@ -1,6 +1,6 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
 use crate::{error::TetronError, utils::typed_value::TypedValue};
-use rune::{ContextError, FromValue, Module, ToValue, Value, docstring, runtime::Object};
+use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
 use std::collections::{HashMap, HashSet};
 use vec2::Vec2;
 
