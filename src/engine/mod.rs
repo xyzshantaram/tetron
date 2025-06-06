@@ -154,7 +154,6 @@ impl Game {
             ]);
             let tags = HashSet::new();
             let queried = ctx.query_with_sets(tags, behaviours)?;
-            // Drawing logic starts here
             for entity in queried {
                 let drawable = match entity.behaviour("tetron:drawable") {
                     Some(d) => d,
@@ -327,7 +326,6 @@ impl Game {
             let now = Instant::now();
             let delta = now.duration_since(last_frame).as_secs_f64();
             last_frame = now;
-            self.input.write()?.next_frame();
             for event in self.sdl.events.poll_iter() {
                 self.input.write()?.update(&event);
                 match event {
@@ -347,6 +345,7 @@ impl Game {
             self.sdl.canvas.clear();
             self.draw(delta)?;
             self.sdl.canvas.present();
+            self.input.write()?.next_frame();
         }
 
         Ok(())
