@@ -111,10 +111,10 @@ fn game_over_scene(world) {
 
     let label = scene.spawn();
     label.attach(transform::create(#{ pos: vec2(240.0, 200.0) })?);
-    label.attach(drawable::create(#{ text: "Game Over", font: #{ size: 32 }, color: "#ff0000" })?);
+    label.attach(drawable::create(#{ text: "Game Over", font: #{ size: 32.0 }, color: "#ff0000" })?);
 
     let prompt = scene.spawn();
-    prompt.attach(drawable::create(#{ text: "Press R to Restart", font: #{ size: 20 }, color: "#ffffff" })?);
+    prompt.attach(drawable::create(#{ text: "Press R to Restart", font: #{ size: 20.0 }, color: "#ffffff" })?);
     prompt.attach(transform::create(#{ pos: vec2(230.0, 260.0) })?);
 
     scene.system("update", game_over_input_system);
