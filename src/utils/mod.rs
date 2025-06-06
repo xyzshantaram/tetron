@@ -16,28 +16,6 @@ pub type RuneVec = ::rune::runtime::Vec;
 
 pub mod typed_value;
 
-pub mod rune {
-    use super::RuneString;
-    use crate::error::TetronError;
-    use rune::{
-        alloc::{clone::TryClone, string::TryToString},
-        runtime::Object,
-    };
-
-    pub(crate) fn clone_obj(obj: &Object) -> Result<Object, TetronError> {
-        let mut copy = Object::new();
-        for item in obj.iter() {
-            copy.insert(item.0.try_to_string()?, item.1.try_clone()?)?;
-        }
-
-        Ok(copy)
-    }
-
-    pub(crate) fn obj_key(s: &str) -> Result<RuneString, rune::alloc::Error> {
-        RuneString::try_from(s)
-    }
-}
-
 pub trait Registrable {
     fn register(module: &mut Module) -> Result<(), ContextError>;
 }
