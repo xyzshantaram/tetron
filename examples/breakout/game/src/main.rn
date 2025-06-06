@@ -23,7 +23,7 @@ fn Wall(scene, x, y, w, h) {
     let wall = scene.spawn();
     wall.attach(shape::create("rect", #{ w, h })?);
     wall.attach(drawable::create(#{ color: WALL_COLOR })?);
-    wall.attach(physics::create(#{ immovable: true })?);
+    wall.attach(physics::create(#{ collision: "immovable" })?);
     wall.attach(transform::create(#{ pos: vec2(x, y) })?);
 }
 
@@ -31,7 +31,7 @@ fn Brick(scene, x, y) {
     let brick = scene.spawn();
     brick.attach(shape::create("rect", #{ w: BRICK_W, h: BRICK_H })?);
     brick.attach(drawable::create(#{ color: BRICK_COLOR })?);
-    brick.attach(physics::create(#{ immovable: true })?);
+    brick.attach(physics::create(#{ collision: "immovable" })?);
     brick.attach(transform::create(#{ pos: vec2(x, y) })?);
 }
 
