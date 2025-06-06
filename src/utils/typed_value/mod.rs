@@ -1,4 +1,6 @@
-use std::{collections::HashMap, convert::Infallible};
+pub mod schema;
+
+use std::collections::HashMap;
 
 use crate::{
     engine::physics::vec2::Vec2,
@@ -7,7 +9,7 @@ use crate::{
 };
 use rune::{FromValue, ToValue, TypeHash, Value, alloc::clone::TryClone, runtime::Object};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TypedValue {
     String(String),
     Number(f64),
@@ -92,68 +94,58 @@ impl TryFrom<TypedValue> for Value {
     }
 }
 
-// TryFrom implementations for basic types to TypedValue
-impl TryFrom<Vec<TypedValue>> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: Vec<TypedValue>) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Array(value))
+// From implementations for basic types to TypedValue (infallible)
+impl From<Vec<TypedValue>> for TypedValue {
+    fn from(value: Vec<TypedValue>) -> Self {
+        TypedValue::Array(value)
     }
 }
 
-impl TryFrom<String> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Ok(TypedValue::String(value))
+impl From<String> for TypedValue {
+    fn from(value: String) -> Self {
+        TypedValue::String(value)
     }
 }
 
-impl TryFrom<f64> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: f64) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Number(value))
+impl From<&str> for TypedValue {
+    fn from(value: &str) -> Self {
+        TypedValue::String(value.to_owned())
     }
 }
 
-impl TryFrom<bool> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: bool) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Bool(value))
+impl From<f64> for TypedValue {
+    fn from(value: f64) -> Self {
+        TypedValue::Number(value)
     }
 }
 
-impl TryFrom<i64> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: i64) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Number(value as f64))
+impl From<i64> for TypedValue {
+    fn from(value: i64) -> Self {
+        TypedValue::Number(value as f64)
     }
 }
 
-impl TryFrom<u64> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: u64) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Number(value as f64))
+impl From<u64> for TypedValue {
+    fn from(value: u64) -> Self {
+        TypedValue::Number(value as f64)
     }
 }
 
-impl TryFrom<HashMap<String, TypedValue>> for TypedValue {
-    type Error = Infallible;
-
-    fn try_from(value: HashMap<String, TypedValue>) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Object(value))
+impl From<bool> for TypedValue {
+    fn from(value: bool) -> Self {
+        TypedValue::Bool(value)
     }
 }
 
-impl TryFrom<Vec2> for TypedValue {
-    type Error = Infallible;
+impl From<HashMap<String, TypedValue>> for TypedValue {
+    fn from(value: HashMap<String, TypedValue>) -> Self {
+        TypedValue::Object(value)
+    }
+}
 
-    fn try_from(value: Vec2) -> Result<Self, Self::Error> {
-        Ok(TypedValue::Vector(value))
+impl From<Vec2> for TypedValue {
+    fn from(value: Vec2) -> Self {
+        TypedValue::Vector(value)
     }
 }
 
@@ -264,6 +256,44 @@ impl TryFrom<TypedValue> for Vec2 {
             TypedValue::Vector(vec) => Ok(vec),
             _ => Err(TetronError::Runtime(
                 "Cannot convert non-vector TypedValue to Vec2".to_string(),
+            )),
+        }
+    }
+}
+
+impl<T> TryFrom<TypedValue> for Vec<T>
+where
+    T: TryFrom<TypedValue, Error = TetronError>,
+{
+    type Error = TetronError;
+
+    fn try_from(value: TypedValue) -> Result<Self, Self::Error> {
+        match value {
+            TypedValue::Array(vec) => vec.into_iter().map(T::try_from).collect(),
+            _ => Err(TetronError::Runtime(
+                "Cannot convert non-array TypedValue to Vec".to_string(),
+            )),
+        }
+    }
+}
+
+impl<V> TryFrom<TypedValue> for HashMap<String, V>
+where
+    V: TryFrom<TypedValue, Error = TetronError>,
+{
+    type Error = TetronError;
+
+    fn try_from(value: TypedValue) -> Result<Self, Self::Error> {
+        match value {
+            TypedValue::Object(map) => map
+                .into_iter()
+                .map(|(key, val)| {
+                    let val = V::try_from(val)?;
+                    Ok((key, val))
+                })
+                .collect(),
+            _ => Err(TetronError::Runtime(
+                "Cannot convert non-object TypedValue to HashMap".to_string(),
             )),
         }
     }
