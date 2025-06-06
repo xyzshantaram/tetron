@@ -16,7 +16,7 @@ fn Ball(scene, x, y) {
     ball.attach(physics::create(#{ collision: "simulate" })?);
     ball.attach(transform::create(#{ pos: vec2(x, y) })?);
     ball.attach(drawable::create(#{ color: "#ffffff" })?);
-    ball.tag("player");
+    ball.tag("ball");
 }
 
 fn Wall(scene, x, y, w, h) {
@@ -47,9 +47,9 @@ fn out_of_bounds_system(ctx) {
 fn paddle_input_system(ctx) {
     for ent in ctx.query(#{ tag: ["paddle"] }) {
         let b = ent.behaviour("tetron:physics")?;
-        if (input::just_released("KeyRight")) {
+        if (input::is_down("Right")) {
             physics::apply_force(b, vec2(1, 0));
-        } else if (input::is_down("KeyLeft")) {
+        } else if (input::is_down("Left")) {
             physics::apply_force(b, vec2(-1, 0));
         } else {
             b.vel.x = 0;
@@ -86,7 +86,7 @@ fn setup_game_scene(world) {
 
 fn menu_input_system(ctx) {
     if (input::just_released("Space")) {
-        ctx.world.load_scene("main");
+        ctx.world.load_scene("game");
     }
 }
 
@@ -101,8 +101,8 @@ fn setup_menu_scene(world) {
 }
 
 fn game_over_input_system(ctx) {
-    if (input::just_released("r")) {
-        ctx.world.load_scene("main");
+    if (input::just_released("R")) {
+        ctx.world.load_scene("game");
     }
 }
 
