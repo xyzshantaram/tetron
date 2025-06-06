@@ -21,7 +21,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
         for (key, val) in config {
             map.insert(key.as_str().to_string(), val.try_into()?);
         }
-        map.insert("type".into(), String::from(name).try_into()?);
+        map.insert("type".into(), String::from(name).into());
         let shape = shapes.with_map(map)?;
 
         // Minor runtime per-type check for stricter shape expectations:
