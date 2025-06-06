@@ -107,6 +107,15 @@ impl Behaviour {
         }
     }
 
+    fn get_typed(&self, field: &str) -> Result<Option<TypedValue>, TetronError> {
+        self.check_field(field)?;
+        if let Some(val) = self.config.get(field) {
+            Ok(Some(val.to_owned()))
+        } else {
+            Ok(None)
+        }
+    }
+
     fn name(&self) -> String {
         self.name.clone()
     }
