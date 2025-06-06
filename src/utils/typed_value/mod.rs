@@ -25,7 +25,8 @@ impl TryFrom<&Value> for TypedValue {
     fn try_from(value: &Value) -> Result<Self, Self::Error> {
         match value.type_hash() {
             bool::HASH => Ok(Self::Bool(value.as_bool()?)),
-            u64::HASH | i64::HASH | f64::HASH => Ok(Self::Number(value.as_float()?)),
+            f64::HASH => Ok(Self::Number(value.as_float()?)),
+            u64::HASH | i64::HASH => Ok(Self::Number(value.as_integer::<i64>()? as f64)),
             String::HASH => Ok(Self::String(value.try_clone()?.into_string()?.into_std())),
             Vec2::HASH => Ok(Self::Vector(Vec2::from_value(value.try_clone()?)?)),
             Object::HASH => Ok(TypedValue::Object({
