@@ -1,42 +1,24 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
 use crate::error::TetronError;
-use rune::{ContextError, Module, TypeHash, docstring, runtime::Object};
-use std::collections::HashSet;
+use crate::utils::typed_value::schema::Schema;
+use rune::{ContextError, Module, docstring, runtime::Object};
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
-    let drawable = BehaviourFactory::new(
-        "drawable",
-        HashSet::from([
-            "color".into(),
-            "anim".into(),
-            "font".into(),
-            "text".into(),
-            "stroke".into(),
-            "fill".into(),
-            "sprite".into(),
-        ]),
-        true,
-    );
+    // font must be an Object with required size (number), optional face (string)
+    let font_schema = Schema::object()
+        .field("size", Schema::number())
+        .optional_field("face", Schema::string(), None)
+        .build();
+
+    let schema = Schema::object()
+        .optional_field("color", Schema::string(), None)
+        .optional_field("text", Schema::string(), None)
+        .optional_field("font", font_schema, None)
+        .build();
+
+    let drawable = BehaviourFactory::new("drawable", schema, true);
 
     let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-        for field in ["color", "stroke", "fill", "text"] {
-            if let Some(v) = obj.get(field) {
-                if v.type_hash() != String::HASH {
-                    return Err(TetronError::Runtime(
-                        "Drawable field '{field}' must be a string!".into(),
-                    ));
-                }
-            }
-        }
-
-        if let Some(font_val) = obj.get("font") {
-            if font_val.type_hash() != Object::HASH {
-                return Err(TetronError::Runtime(
-                    "Drawable field 'font' must be an object".into(),
-                ));
-            }
-        }
-
         drawable
             .create(obj)
             .inspect_err(|e| println!("error building drawable: {e}"))
@@ -44,6 +26,11 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
 
     module.function("create", func).build()?.docs(docstring! {
         /// Create a new drawable behaviour.
+        ///
+        /// Fields:
+        /// * color: string
+        /// * text: string
+        /// * font: object with size (number) and optional face (string)
     })?;
     Ok(())
 }

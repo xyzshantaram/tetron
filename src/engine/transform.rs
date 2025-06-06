@@ -2,9 +2,11 @@ use super::{
     behaviours::{BehaviourFactory, BehaviourRef},
     physics::vec2::Vec2,
 };
-use crate::{error::TetronError, utils::typed_value::TypedValue};
+use crate::{
+    error::TetronError,
+    utils::typed_value::{TypedValue, schema::Schema},
+};
 use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
-use std::collections::{HashMap, HashSet};
 
 #[rune::function(keep)]
 pub fn rotate(b: &mut BehaviourRef, angle: f64) -> Result<(), TetronError> {
@@ -30,28 +32,18 @@ pub fn translate(b: &mut BehaviourRef, delta: Vec2) -> Result<(), TetronError> {
 }
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
-    let transform = BehaviourFactory::new(
-        "transform",
-        HashSet::from(["pos".into(), "rot".into()]),
-        true,
-    );
+    let schema = Schema::object()
+        .optional_field(
+            "pos",
+            Schema::vec2(),
+            Some(TypedValue::Vector(Vec2::zero())),
+        )
+        .optional_field("rot", Schema::number(), Some(TypedValue::Number(0.0)))
+        .build();
 
-    let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-        let pos = obj
-            .get("pos")
-            .cloned()
-            .unwrap_or(Vec2::new(0.0, 0.0).to_value()?);
-        let rot = obj
-            .get("rot")
-            .and_then(|v| v.as_float().ok())
-            .unwrap_or(0.0);
+    let transform = BehaviourFactory::new("transform", schema, true);
 
-        let mut val = HashMap::<String, TypedValue>::new();
-        val.insert("pos".into(), pos.try_into()?);
-        val.insert("rot".into(), rot.try_into()?);
-
-        transform.with_map(val)
-    };
+    let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> { transform.create(obj) };
 
     module.function("create", func).build()?.docs(docstring! {
         /// Create a new transform behaviour. All fields are optional and default to zero if not specified.

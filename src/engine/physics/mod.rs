@@ -1,62 +1,61 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::{error::TetronError, utils::typed_value::TypedValue};
+use crate::{
+    error::TetronError,
+    utils::typed_value::{TypedValue, schema::Schema},
+};
 use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
-use std::collections::{HashMap, HashSet};
 use vec2::Vec2;
 
 pub mod vec2;
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
-    let physics = BehaviourFactory::new(
-        "physics",
-        HashSet::from(["vel".into(), "collision".into(), "mass".into()]),
-        true,
-    );
+    let schema = Schema::object()
+        .optional_field(
+            "vel",
+            Schema::vec2(),
+            Some(TypedValue::Vector(Vec2::zero())),
+        )
+        .field("collision", Schema::string())
+        .optional_field("mass", Schema::number(), None)
+        .optional_field("friction", Schema::number(), None)
+        .build();
 
-    let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-        physics.with_map({
-            let vel = match obj.get("vel") {
-                Some(value) => Vec2::from_value(value.clone())?,
-                None => Vec2::zero(),
+    let physics = BehaviourFactory::new("physics", schema, true);
+
+    let func =
+        move |obj: &Object| -> Result<BehaviourRef, TetronError> {
+            let behaviour = physics.create(obj)?;
+            let collision = match behaviour.get_typed("collision")? {
+                Some(TypedValue::String(s)) => s,
+                _ => unreachable!(),
             };
 
-            let collision = String::from_value(
-                obj.get("collision")
-                    .ok_or_else(|| {
-                        TetronError::Runtime(
-                            "physics::create(): collision behaviour must be specified".into(),
-                        )
-                    })?
-                    .clone(),
-            )?;
-
-            if !(["simulate", "immovable", "none"].contains(&collision.as_str())) {
-                return Err(TetronError::Runtime(format!(
-                    "Invalid collision type {collision} specified"
-                )));
+            match collision.as_str() {
+                "simulate" => match behaviour.get_typed("mass")? {
+                    Some(TypedValue::Number(m)) if m > 0.0 => {}
+                    _ => return Err(TetronError::Runtime(
+                        "physics::create(): mass must be specified and > 0 for simulated bodies"
+                            .into(),
+                    )),
+                },
+                "immovable" | "none" => {}
+                _ => {
+                    return Err(TetronError::Runtime(format!(
+                        "Invalid collision type {collision} specified"
+                    )));
+                }
             }
-
-            let mut mass = obj.get("mass").and_then(|v| v.as_float().ok());
-
-            if collision == "simulate" && mass.is_none() {
-                return Err(TetronError::Runtime(
-                    "physics::create(): mass must be specified for simulated bodies".into(),
-                ));
-            } else if collision == "immovable" {
-                mass.replace(f64::INFINITY);
-            }
-
-            let mut map = HashMap::<String, TypedValue>::new();
-            map.insert("vel".into(), vel.try_into()?);
-            map.insert("collision".into(), collision.try_into()?);
-            map.insert("mass".into(), mass.unwrap_or(-1.0).try_into()?);
-
-            map
-        })
-    };
+            Ok(behaviour)
+        };
 
     module.function("create", func).build()?.docs(docstring! {
         /// Create a new physics behaviour.
+        ///
+        /// Fields:
+        /// * collision: string ("simulate", "immovable", or "none")
+        /// * vel: Vec2 (optional, default (0,0))
+        /// * mass: number (optional, required if collision=="simulate")
+        /// * friction: number (optional)
     })?;
 
     Ok(())

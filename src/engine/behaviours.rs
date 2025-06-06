@@ -1,17 +1,19 @@
 use crate::{
     error::TetronError,
-    utils::{Registrable, typed_value::TypedValue},
+    utils::{
+        Registrable,
+        typed_value::{
+            TypedValue,
+            schema::{Schema, SchemaError},
+        },
+    },
 };
-use rune::{ContextError, FromValue, Module, Value, runtime::Object};
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    rc::Rc,
-    sync::Arc,
-};
+use rune::{ContextError, Module, Value, runtime::Object};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
 enum BehaviourError {
     InvalidProperty(String),
+    Validation(SchemaError),
 }
 
 impl From<BehaviourError> for TetronError {
@@ -20,6 +22,9 @@ impl From<BehaviourError> for TetronError {
             BehaviourError::InvalidProperty(name) => TetronError::Runtime(format!(
                 "tetron::behaviours: attempt to access invalid property {name}"
             )),
+            BehaviourError::Validation(e) => {
+                TetronError::Runtime(format!("validation failed: {e:?}"))
+            }
         }
     }
 }
@@ -29,42 +34,43 @@ pub struct Behaviour {
     pub(crate) name: String,
     #[allow(dead_code)] // used in impl Behaviour
     pub(crate) config: HashMap<String, TypedValue>,
-    #[allow(dead_code)] // used in impl Behaviour
-    pub(crate) fields: Arc<HashSet<String>>,
+    pub(crate) schema: Arc<Schema>,
 }
 
 #[derive(rune::Any, Clone, Debug)]
 pub struct BehaviourFactory {
     name: String,
-    keys: Arc<HashSet<String>>,
+    schema: Arc<Schema>,
     internal: bool,
 }
 
 impl BehaviourFactory {
-    pub fn new(name: &str, keys: HashSet<String>, internal: bool) -> Self {
+    pub fn new(name: &str, schema: Schema, internal: bool) -> Self {
         Self {
             name: name.to_owned(),
-            keys: Arc::new(keys),
+            schema: Arc::new(schema),
             internal,
         }
     }
 
     pub fn with_map(&self, map: HashMap<String, TypedValue>) -> Result<BehaviourRef, TetronError> {
-        // Check all keys are valid
-        for key in map.keys() {
-            if !self.keys.contains(key.as_str()) {
-                return Err(BehaviourError::InvalidProperty(key.to_string()).into());
-            }
-        }
+        let validated = self
+            .schema
+            .validate(&TypedValue::Object(map))
+            .map_err(BehaviourError::Validation)?;
         let name = if self.internal {
             String::from("tetron:") + &self.name
         } else {
             self.name.clone()
         };
+        let config = match validated {
+            TypedValue::Object(obj) => obj,
+            _ => unreachable!(),
+        };
         Ok(BehaviourRef::new(Behaviour {
             name,
-            config: map,
-            fields: self.keys.clone(),
+            config,
+            schema: self.schema.clone(),
         }))
     }
 
@@ -78,15 +84,26 @@ impl BehaviourFactory {
         }
         self.with_map(map)
     }
+
+    pub fn schema(&self) -> Arc<Schema> {
+        self.schema.clone()
+    }
 }
 
 impl Behaviour {
     #[allow(dead_code)] // used on the Rune side
     fn check_field(&self, field: &str) -> Result<(), TetronError> {
-        if !self.fields.contains(field) {
-            Err(BehaviourError::InvalidProperty(field.to_owned()).into())
-        } else {
-            Ok(())
+        match *self.schema {
+            Schema::Object { ref fields } => {
+                if !fields.contains_key(field) {
+                    Err(BehaviourError::InvalidProperty(field.to_owned()).into())
+                } else {
+                    Ok(())
+                }
+            }
+            _ => Err(TetronError::Runtime(
+                "Behaviour schema is not object".to_string(),
+            )),
         }
     }
 
@@ -118,6 +135,10 @@ impl Behaviour {
 
     fn name(&self) -> String {
         self.name.clone()
+    }
+
+    pub fn schema(&self) -> Arc<Schema> {
+        self.schema.clone()
     }
 }
 
@@ -162,11 +183,11 @@ impl BehaviourRef {
         self.0.borrow().get(field)
     }
 
-    pub fn get_typed<T: FromValue>(&self, field: &str) -> Result<Option<T>, TetronError> {
-        if let Some(val) = self.0.borrow().get(field)? {
-            Ok(Some(T::from_value(val)?))
-        } else {
-            Ok(None)
-        }
+    pub fn has(&self, field: &str) -> bool {
+        self.0.borrow().config.contains_key(field)
+    }
+
+    pub fn get_typed(&self, field: &str) -> Result<Option<TypedValue>, TetronError> {
+        self.0.borrow().get_typed(field)
     }
 }

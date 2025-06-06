@@ -1,5 +1,8 @@
 use super::{behaviours::BehaviourFactory, scene::SceneRef};
-use crate::{error::TetronError, utils::RuneString};
+use crate::{
+    error::TetronError,
+    utils::{RuneString, typed_value::schema::Schema},
+};
 use rune::{alloc::clone::TryClone, runtime::Object};
 use std::{
     cell::RefCell,
@@ -54,7 +57,7 @@ impl WorldRef {
     fn define_behaviour(
         &mut self,
         name: &str,
-        keys: Vec<RuneString>,
+        schema: Schema,
     ) -> Result<BehaviourFactoryRef, TetronError> {
         let registry = &mut self.0.try_borrow_mut()?.behaviour_registry;
         if name.starts_with("tetron:") {
@@ -66,11 +69,7 @@ impl WorldRef {
                 "Cannot define behaviour {name}: a behaviour with the same name already exists"
             )))
         } else {
-            let factory = BehaviourFactoryRef(Arc::new(BehaviourFactory::new(
-                name,
-                HashSet::from_iter(keys.iter().map(|v| v.to_string())),
-                false,
-            )));
+            let factory = BehaviourFactoryRef(Arc::new(BehaviourFactory::new(name, schema, false)));
             registry.insert(name.into(), factory.clone());
             Ok(factory)
         }
