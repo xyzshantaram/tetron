@@ -1,12 +1,13 @@
 use crate::{
+    engine::physics::vec2::Vec2,
     error::TetronError,
     fs::{SimpleFs, overlay_fs::OverlayFs, to_vfs_layer},
     scripting::{self, TetronScripting},
     sdl::TetronSdlHandle,
-    utils::resolve_physical_fs_path,
+    utils::{parse_hex_color, resolve_physical_fs_path, typed_value::TypedValue},
 };
 use input::KeyState;
-use sdl2::{event::Event, keyboard::Keycode};
+use sdl2::{event::Event, keyboard::Keycode, pixels::Color};
 use std::{
     collections::HashSet,
     process,
@@ -153,8 +154,7 @@ impl Game {
             ]);
             let tags = HashSet::new();
             let queried = ctx.query_with_sets(tags, behaviours)?;
-            println!("Beginning draw of {} entities", queried.len());
-
+            // Drawing logic starts here
             for entity in queried {
                 let drawable = match entity.behaviour("tetron:drawable") {
                     Some(d) => d,
@@ -164,7 +164,137 @@ impl Game {
                     Some(t) => t,
                     None => continue,
                 };
+                // Get color from drawable (fallback white)
+                let color = parse_hex_color(
+                    &drawable
+                        .get_typed("color")?
+                        .and_then(|v| match v {
+                            TypedValue::String(s) => Some(s),
+                            _ => None,
+                        })
+                        .unwrap_or_default(),
+                    Color::WHITE,
+                );
+                // Parse position from transform
+                let pos: Option<Vec2> =
+                    transform
+                        .get_typed("pos")
+                        .ok()
+                        .flatten()
+                        .and_then(|v| match v {
+                            TypedValue::Vector(v2) => Some(v2),
+                            _ => None,
+                        });
+                let pos = pos.unwrap_or(Vec2::ZERO);
+
+                // Draw text if present
+                if let Some(TypedValue::String(txt)) = drawable.get_typed("text").ok().flatten() {
+                    // font config (optional)
+                    let font_conf = drawable.get_typed("font").ok().flatten();
+                    let (font_name, font_size) = if let Some(TypedValue::Object(map)) = &font_conf {
+                        (
+                            map.get("face").and_then(|v| {
+                                if let TypedValue::String(s) = v {
+                                    Some(s.clone())
+                                } else {
+                                    None
+                                }
+                            }),
+                            map.get("size").and_then(|v| {
+                                if let TypedValue::Number(sz) = v {
+                                    Some(*sz)
+                                } else {
+                                    None
+                                }
+                            }),
+                        )
+                    } else {
+                        (None, None)
+                    };
+                    self.sdl.draw_text(&txt, pos, font_name, font_size, color)?;
+                    continue;
+                }
+                // TODO: Sprites and animations not implemented
+                if drawable.get_typed("sprite").ok().flatten().is_some() {
+                    todo!("Sprite rendering not implemented!");
+                }
+                if drawable.get_typed("anim").ok().flatten().is_some() {
+                    todo!("Anim rendering not implemented!");
+                }
+                // Otherwise, try shape
+                if let Some(shape) = entity.behaviour("tetron:shape") {
+                    if let Some(TypedValue::String(sh_type)) =
+                        shape.get_typed("type").ok().flatten()
+                    {
+                        match sh_type.as_str() {
+                            "rect" => {
+                                let w = shape
+                                    .get_typed("w")?
+                                    .and_then(|v| match v {
+                                        TypedValue::Number(f) => Some(f),
+                                        _ => None,
+                                    })
+                                    .unwrap_or(1.0);
+                                let h = shape
+                                    .get_typed("h")?
+                                    .and_then(|v| match v {
+                                        TypedValue::Number(f) => Some(f),
+                                        _ => None,
+                                    })
+                                    .unwrap_or(1.0);
+                                self.sdl.draw_rect(pos, w, h, color, true)?;
+                            }
+                            "circle" => {
+                                let r = shape
+                                    .get_typed("r")
+                                    .ok()
+                                    .flatten()
+                                    .and_then(|v| match v {
+                                        TypedValue::Number(f) => Some(f),
+                                        _ => None,
+                                    })
+                                    .unwrap_or(1.0);
+                                self.sdl.draw_circle(pos, r, color, true)?;
+                            }
+                            "poly" => {
+                                if let Some(TypedValue::Array(points)) =
+                                    shape.get_typed("points").ok().flatten()
+                                {
+                                    let points: Vec<Vec2> = points
+                                        .into_iter()
+                                        .filter_map(|val| match val {
+                                            TypedValue::Vector(v) => Some(v),
+                                            _ => None,
+                                        })
+                                        .collect();
+                                    if points.len() >= 3 {
+                                        self.sdl.draw_polygon(&points, color, true)?;
+                                    }
+                                }
+                            }
+                            "line" => {
+                                if let Some(TypedValue::Array(points)) =
+                                    shape.get_typed("points").ok().flatten()
+                                {
+                                    let vv: Vec<Vec2> = points
+                                        .into_iter()
+                                        .filter_map(|val| match val {
+                                            TypedValue::Vector(v) => Some(v),
+                                            _ => None,
+                                        })
+                                        .collect();
+                                    if vv.len() == 2 {
+                                        self.sdl.draw_line(vv[0], vv[1], color)?;
+                                    }
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                // If no text and no shape, nothing is rendered
             }
+            // Drawing logic ends here
         }
         Ok(())
     }

@@ -5,6 +5,8 @@ use rune::{
 };
 use std::sync::atomic::{AtomicU8, Ordering};
 
+use crate::system_log;
+
 /// Global log level that can be changed at runtime
 static CURRENT_LOG_LEVEL: AtomicU8 = AtomicU8::new(LogLevel::Info as u8);
 
@@ -79,10 +81,7 @@ fn native_log(level_str: &str, file: &str, line: i64, message: &str) {
 pub fn level(level: &str) -> bool {
     if let Some(log_level) = LogLevel::from_str(level) {
         CURRENT_LOG_LEVEL.store(log_level as u8, Ordering::Relaxed);
-        println!(
-            "tetron::log \x1b[36m[SYSTEM]\x1b[0m Log level set to: {}",
-            log_level.as_str()
-        );
+        system_log!("Log level set to: {}", log_level.as_str());
         true
     } else {
         eprintln!(

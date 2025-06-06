@@ -1,5 +1,6 @@
 use crate::{
     error::TetronError,
+    system_log,
     utils::{
         Registrable,
         typed_value::{
@@ -57,6 +58,7 @@ impl BehaviourFactory {
         let validated = self
             .schema
             .validate(&TypedValue::Object(map))
+            .inspect_err(|e| system_log!("BehaviourFactory::with_map validation error: {e:?}"))
             .map_err(BehaviourError::Validation)?;
         let name = if self.internal {
             String::from("tetron:") + &self.name
@@ -79,10 +81,16 @@ impl BehaviourFactory {
         let mut map = HashMap::<String, TypedValue>::new();
         for key in config.keys() {
             if let Some(val) = config.get(key) {
-                map.insert(key.as_str().to_string(), val.try_into()?);
+                map.insert(
+                    key.as_str().to_string(),
+                    val.try_into().inspect_err(|e| {
+                        system_log!("BehaviourFactory::create (key {key}) error: {e:?}")
+                    })?,
+                );
             }
         }
         self.with_map(map)
+            .inspect_err(|e| system_log!("BehaviourFactory::create -> with_map error: {e:?}"))
     }
 
     pub fn schema(&self) -> Arc<Schema> {
@@ -109,23 +117,32 @@ impl Behaviour {
 
     #[allow(dead_code)]
     fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
-        self.check_field(field)?;
-        self.config.insert(field.into(), TryInto::try_into(&value)?);
+        self.check_field(field)
+            .inspect_err(|e| system_log!("Behaviour::set check_field error: {e:?}"))?;
+        self.config.insert(
+            field.into(),
+            TryInto::try_into(&value)
+                .inspect_err(|e| system_log!("Behaviour::set TryInto error: {e:?}"))?,
+        );
         Ok(())
     }
 
     #[allow(dead_code)]
     fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
-        self.check_field(field)?;
+        self.check_field(field)
+            .inspect_err(|e| system_log!("Behaviour::get check_field error: {e:?}"))?;
         if let Some(val) = self.config.get(field) {
-            Ok(Some(val.try_into()?))
+            Ok(Some(val.try_into().inspect_err(|e| {
+                system_log!("Behaviour::get TryInto error: {e:?} (field: {field})")
+            })?))
         } else {
             Ok(None)
         }
     }
 
     fn get_typed(&self, field: &str) -> Result<Option<TypedValue>, TetronError> {
-        self.check_field(field)?;
+        self.check_field(field)
+            .inspect_err(|e| system_log!("Behaviour::get_typed check_field error: {e:?}"))?;
         if let Some(val) = self.config.get(field) {
             Ok(Some(val.to_owned()))
         } else {

@@ -1,6 +1,6 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
-use crate::error::TetronError;
 use crate::utils::typed_value::schema::Schema;
+use crate::{error::TetronError, system_log};
 use rune::{ContextError, Module, docstring, runtime::Object};
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
@@ -21,7 +21,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
         drawable
             .create(obj)
-            .inspect_err(|e| println!("error building drawable: {e}"))
+            .inspect_err(|e| system_log!("drawable::create error: {e}"))
     };
 
     module.function("create", func).build()?.docs(docstring! {

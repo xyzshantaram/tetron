@@ -1,6 +1,7 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
 use crate::{
     error::TetronError,
+    system_log,
     utils::typed_value::{TypedValue, schema::Schema},
 };
 use rune::{ContextError, Module, docstring, runtime::Object};
@@ -19,10 +20,16 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
     let func = move |name: &str, config: &Object| -> Result<BehaviourRef, TetronError> {
         let mut map = std::collections::HashMap::<String, TypedValue>::new();
         for (key, val) in config {
-            map.insert(key.as_str().to_string(), val.try_into()?);
+            map.insert(
+                key.as_str().to_string(),
+                val.try_into()
+                    .inspect_err(|e| system_log!("shape::create (key {key}) error: {e:?}"))?,
+            );
         }
         map.insert("type".into(), String::from(name).into());
-        let shape = shapes.with_map(map)?;
+        let shape = shapes
+            .with_map(map)
+            .inspect_err(|e| system_log!("shape::create shapes.with_map error: {e:?}"))?;
 
         // Minor runtime per-type check for stricter shape expectations:
         match name {

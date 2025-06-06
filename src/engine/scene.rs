@@ -1,5 +1,5 @@
 use super::{entity::EntityRef, systems::Ctx, world::WorldRef};
-use crate::{error::TetronError, utils::Registrable};
+use crate::{error::TetronError, system_log, utils::Registrable};
 use rune::{
     ContextError, Module, ToValue,
     runtime::{Function, Object},
@@ -61,7 +61,8 @@ impl SceneRef {
         for system in scene.systems.values() {
             system
                 .call::<()>((ctx.clone().to_value()?,))
-                .into_result()?;
+                .into_result()
+                .inspect_err(|e| system_log!("SceneRef::update system error: {e:?}"))?;
         }
 
         Ok(())
