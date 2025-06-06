@@ -139,9 +139,45 @@ impl TetronSdlHandle {
         font_size: Option<f64>,
         color: Color,
     ) -> Result<(), TetronError> {
-        // TODO: Implement text rendering using loaded fonts
-        // For now, just return OK to avoid compilation errors
-        let _ = (text, pos, font_name, font_size, color);
+        use sdl2::rwops::RWops;
+
+        let font_key = font_name
+            .clone()
+            .or_else(|| self.font_data.keys().next().cloned())
+            .ok_or_else(|| {
+                TetronError::Runtime("No font available for text rendering".to_string())
+            })?;
+        let font_bytes = self
+            .font_data
+            .get(&font_key)
+            .ok_or_else(|| TetronError::Runtime(format!("Font '{}' not loaded", font_key)))?;
+        let font_size = font_size.map(|fs| fs as u16).unwrap_or(16);
+        let rw = RWops::from_bytes(font_bytes)
+            .map_err(|e| TetronError::Runtime(format!("RWops error: {e}")))?;
+        let font = self
+            .ttf_context
+            .load_font_from_rwops(rw, font_size)
+            .map_err(|e| {
+                TetronError::Runtime(format!("ttf_context.load_font_from_rwops error: {e}"))
+            })?;
+        let sdl_color = color;
+        let surface = font
+            .render(text)
+            .blended(sdl_color)
+            .map_err(|e| TetronError::Runtime(format!("Font render error: {e}")))?;
+        let texture_creator = self.canvas.texture_creator();
+        let texture = texture_creator
+            .create_texture_from_surface(&surface)
+            .map_err(|e| TetronError::Runtime(format!("texture creation error: {e}")))?;
+        let target = sdl2::rect::Rect::new(
+            pos.x as i32,
+            pos.y as i32,
+            surface.width(),
+            surface.height(),
+        );
+        self.canvas
+            .copy(&texture, None, Some(target))
+            .map_err(|e| TetronError::Runtime(format!("canvas.copy error: {e}")))?;
         Ok(())
     }
 }
