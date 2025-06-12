@@ -1,13 +1,7 @@
 use super::{entity::EntityRef, world::WorldRef};
-use crate::{
-    error::TetronError,
-    utils::{Registrable, RuneString},
-};
+use crate::{error::TetronError, utils::Registrable};
 use rune::{Value, runtime::Object};
-use std::{
-    any::{Any, TypeId},
-    collections::HashSet,
-};
+use std::collections::HashSet;
 
 #[derive(Clone, rune::Any)]
 pub struct Ctx {
