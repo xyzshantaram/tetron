@@ -92,8 +92,10 @@ impl WorldRef {
 
     #[rune::function(instance)]
     fn load_scene(&self, name: &str) {
-        if let Some(scene) = self.0.borrow().scenes.get(name).cloned() {
-            self.0.borrow_mut().current_scene = Some((name.to_owned(), scene));
+        let mut world = self.0.borrow_mut();
+        let scene = world.scenes.get(name).cloned();
+        if let Some(scene) = scene {
+            world.current_scene = Some((name.to_owned(), scene));
         }
     }
 
