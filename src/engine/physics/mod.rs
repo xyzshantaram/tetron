@@ -34,7 +34,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
             },
             "immovable" | "none" => {}
             _ => {
-                panic!("Engine bug: Invalid collision type {collision} specified");
+                panic!("Invalid collision type {collision} specified");
             }
         }
         behaviour

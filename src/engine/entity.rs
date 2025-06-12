@@ -3,7 +3,7 @@ use crate::{log_and_die, utils::Registrable};
 use rune::{ContextError, Module};
 use std::{
     cell::RefCell,
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, hash_map::Entry},
     rc::Rc,
 };
 
@@ -53,11 +53,13 @@ impl EntityRef {
             .behaviours;
         let name = behaviour.name();
 
-        #[allow(clippy::map_entry)]
-        if behaviours.contains_key(&name) {
-            log_and_die!(1, "Cannot insert behaviour {name}: already exists");
-        } else {
-            behaviours.insert(name, behaviour);
+        match behaviours.entry(name.clone()) {
+            Entry::Occupied(_) => {
+                log_and_die!(1, "Cannot insert behaviour {name}: already exists");
+            }
+            Entry::Vacant(entry) => {
+                entry.insert(behaviour);
+            }
         }
     }
 

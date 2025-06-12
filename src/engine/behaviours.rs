@@ -11,7 +11,6 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 #[derive(rune::Any, Debug)]
 pub struct Behaviour {
     pub(crate) name: String,
-    #[allow(dead_code)] // used in impl Behaviour
     pub(crate) config: HashMap<String, TypedValue>,
     pub(crate) schema: Arc<Schema>,
 }

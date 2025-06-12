@@ -4,15 +4,14 @@ use rune::{alloc::clone::TryClone, runtime::Object};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
 #[derive(rune::Any, Clone, Debug)]
-// ok to ignore warning, used in Rune
-pub struct BehaviourFactoryRef(#[allow(dead_code)] Arc<BehaviourFactory>);
+pub struct BehaviourFactoryRef(
+    #[allow(dead_code)] Arc<BehaviourFactory>, /* Okay to ignore this warning, the Behaviour.create stuff is called on the Rune side. */
+);
 
 #[derive(Debug, Default)]
 pub struct World {
-    #[allow(dead_code)] // used in rune
     scenes: HashMap<String, SceneRef>,
     current_scene: Option<(String, SceneRef)>,
-    #[allow(dead_code)] // used in rune
     behaviour_registry: HashMap<String, BehaviourFactoryRef>,
 }
 
@@ -55,12 +54,12 @@ impl WorldRef {
         if name.starts_with("tetron:") {
             log_and_die!(
                 1,
-                "Engine bug: Cannot define behaviour {name}: Behaviour names cannot start with 'tetron:'"
+                "Cannot define behaviour {name}: Behaviour names cannot start with 'tetron:'"
             );
         } else if registry.contains_key(name) {
             log_and_die!(
                 1,
-                "Engine bug: Cannot define behaviour {name}: a behaviour with the same name already exists"
+                "Cannot define behaviour {name}: a behaviour with the same name already exists"
             );
         } else {
             let factory = BehaviourFactoryRef(Arc::new(BehaviourFactory::new(name, schema, false)));
@@ -80,7 +79,7 @@ impl WorldRef {
         if world.scenes.contains_key(name) {
             log_and_die!(
                 1,
-                "Engine bug: Could not create scene {name} - a scene with that name already exists"
+                "Could not create scene {name} - a scene with that name already exists"
             );
         }
 

@@ -54,7 +54,6 @@ impl LogLevel {
 }
 
 // Native logging function that respects the current log level
-#[allow(unused)]
 #[rune::function(keep)]
 fn native_log(level_str: &str, file: &str, line: i64, message: &str) {
     let Some(level) = LogLevel::from_str(level_str) else {
