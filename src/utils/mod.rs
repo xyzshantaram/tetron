@@ -27,6 +27,14 @@ macro_rules! system_log {
     };
 }
 
+#[macro_export]
+macro_rules! log_and_die {
+    ($code:expr, $($arg:tt)*) => {{
+        println!("tetron::log \x1b[36m[SYSTEM]\x1b[0m Error: {}", format!($($arg)*));
+        std::process::exit($code)
+    }};
+}
+
 pub fn parse_hex_color(hex: &str, fallback: sdl2::pixels::Color) -> sdl2::pixels::Color {
     let hex = hex.trim_start_matches('#');
     match hex.len() {

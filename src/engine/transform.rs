@@ -2,21 +2,13 @@ use super::{
     behaviours::{BehaviourFactory, BehaviourRef},
     physics::vec2::Vec2,
 };
-use crate::{
-    error::TetronError,
-    system_log,
-    utils::typed_value::{TypedValue, schema::Schema},
-};
+use crate::utils::typed_value::{TypedValue, schema::Schema};
 use rune::{ContextError, FromValue, Module, ToValue, docstring, runtime::Object};
 
 #[rune::function(keep)]
-pub fn rotate(b: &mut BehaviourRef, angle: f64) -> Result<(), TetronError> {
-    let old = if let Some(value) = b
-        .get("rot")
-        .inspect_err(|e| system_log!("transform::rotate get rot error: {e:?}"))?
-    {
-        f64::from_value(value)
-            .inspect_err(|e| system_log!("transform::rotate f64::from_value error: {e:?}"))?
+pub fn rotate(b: &mut BehaviourRef, angle: f64) {
+    let old = if let Some(value) = b.get("rot") {
+        f64::from_value(value).expect("Engine bug: failed to convert rotation value")
     } else {
         0.0
     };
@@ -24,20 +16,14 @@ pub fn rotate(b: &mut BehaviourRef, angle: f64) -> Result<(), TetronError> {
         "rot",
         (old + angle)
             .to_value()
-            .inspect_err(|e| system_log!("transform::rotate to_value error: {e:?}"))?,
-    )
-    .inspect_err(|e| system_log!("transform::rotate set error: {e:?}"))?;
-    Ok(())
+            .expect("Engine bug: failed to convert rotation to rune value"),
+    );
 }
 
 #[rune::function(keep)]
-pub fn translate(b: &mut BehaviourRef, delta: Vec2) -> Result<(), TetronError> {
-    let current_pos = if let Some(value) = b
-        .get("pos")
-        .inspect_err(|e| system_log!("transform::translate get pos error: {e:?}"))?
-    {
-        Vec2::from_value(value)
-            .inspect_err(|e| system_log!("transform::translate Vec2::from_value error: {e:?}"))?
+pub fn translate(b: &mut BehaviourRef, delta: Vec2) {
+    let current_pos = if let Some(value) = b.get("pos") {
+        Vec2::from_value(value).expect("Engine bug: failed to convert position value")
     } else {
         Vec2::zero()
     };
@@ -46,10 +32,8 @@ pub fn translate(b: &mut BehaviourRef, delta: Vec2) -> Result<(), TetronError> {
         "pos",
         new_pos
             .to_value()
-            .inspect_err(|e| system_log!("transform::translate to_value error: {e:?}"))?,
-    )
-    .inspect_err(|e| system_log!("transform::translate set error: {e:?}"))?;
-    Ok(())
+            .expect("Engine bug: failed to convert position to rune value"),
+    );
 }
 
 fn register_factory(module: &mut Module) -> Result<(), ContextError> {
@@ -64,11 +48,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
 
     let transform = BehaviourFactory::new("transform", schema, true);
 
-    let func = move |obj: &Object| -> Result<BehaviourRef, TetronError> {
-        transform
-            .create(obj)
-            .inspect_err(|e| system_log!("transform::create error: {e:?}"))
-    };
+    let func = move |obj: &Object| -> BehaviourRef { transform.create(obj) };
 
     module.function("create", func).build()?.docs(docstring! {
         /// Create a new transform behaviour. All fields are optional and default to zero if not specified.

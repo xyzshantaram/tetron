@@ -13,14 +13,14 @@ pub fn module(config: Arc<Kv>) -> Result<Module, ContextError> {
     module
         .function(
             "get",
-            move |key_array: Vec<Value>| -> Result<Option<Value>, TetronError> {
-                let kv_key = rune_vec_to_kv_key(key_array)?;
-                let val = getter.get(&kv_key)?;
-                Ok(if let Some(value) = val {
-                    Some(kv_value_to_rune(&value)?)
+            move |key_array: Vec<Value>| -> Option<Value> {
+                let kv_key = rune_vec_to_kv_key(key_array).expect("Engine bug: failed to convert key array");
+                let val = getter.get(&kv_key).expect("Engine bug: failed to get from config");
+                if let Some(value) = val {
+                    Some(kv_value_to_rune(&value).expect("Engine bug: failed to convert value to rune"))
                 } else {
                     None
-                })
+                }
             },
         )
         .build()?;

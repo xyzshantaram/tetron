@@ -8,9 +8,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::error::TetronError;
-
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct KeyState {
     down: HashSet<Scancode>,
     pressed: HashSet<Scancode>,
@@ -88,9 +86,9 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
     module
         .function("is_down", {
             let input = input.clone();
-            move |k: &str| -> Result<bool, TetronError> {
-                let guard = input.read()?;
-                Ok(guard.is_down(k))
+            move |k: &str| -> bool {
+                let guard = input.read().expect("Engine bug: input lock poisoned");
+                guard.is_down(k)
             }
         })
         .build()?
@@ -103,9 +101,9 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
     module
         .function("just_pressed", {
             let input = input.clone();
-            move |k: &str| -> Result<bool, TetronError> {
-                let guard = input.read()?;
-                Ok(guard.just_pressed(k))
+            move |k: &str| -> bool {
+                let guard = input.read().expect("Engine bug: input lock poisoned");
+                guard.just_pressed(k)
             }
         })
         .build()?
@@ -118,9 +116,9 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
     module
         .function("just_released", {
             let input = input.clone();
-            move |k: &str| -> Result<bool, TetronError> {
-                let guard = input.read()?;
-                Ok(guard.just_released(k))
+            move |k: &str| -> bool {
+                let guard = input.read().expect("Engine bug: input lock poisoned");
+                guard.just_released(k)
             }
         })
         .build()?
@@ -133,9 +131,9 @@ pub fn module(input: Arc<RwLock<KeyState>>) -> Result<Module, ContextError> {
     module
         .function("is_held", {
             let input = input.clone();
-            move |k: &str| -> Result<bool, TetronError> {
-                let guard = input.read()?;
-                Ok(guard.is_held(k))
+            move |k: &str| -> bool {
+                let guard = input.read().expect("Engine bug: input lock poisoned");
+                guard.is_held(k)
             }
         })
         .build()?

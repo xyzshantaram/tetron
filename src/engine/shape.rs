@@ -1,7 +1,6 @@
 use super::behaviours::{BehaviourFactory, BehaviourRef};
 use crate::{
-    error::TetronError,
-    system_log,
+    log_and_die,
     utils::typed_value::{TypedValue, schema::Schema},
 };
 use rune::{ContextError, Module, docstring, runtime::Object};
@@ -17,61 +16,53 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
 
     let shapes = BehaviourFactory::new("shape", schema, true);
 
-    let func = move |name: &str, config: &Object| -> Result<BehaviourRef, TetronError> {
+    let func = move |name: &str, config: &Object| -> BehaviourRef {
         let mut map = std::collections::HashMap::<String, TypedValue>::new();
         for (key, val) in config {
             map.insert(
                 key.as_str().to_string(),
                 val.try_into()
-                    .inspect_err(|e| system_log!("shape::create (key {key}) error: {e:?}"))?,
+                    .expect("Engine bug: failed to convert rune value to typed value"),
             );
         }
         map.insert("type".into(), String::from(name).into());
-        let shape = shapes
-            .with_map(map)
-            .inspect_err(|e| system_log!("shape::create shapes.with_map error: {e:?}"))?;
+        let shape = shapes.with_map(map);
 
         // Minor runtime per-type check for stricter shape expectations:
         match name {
             "rect" => {
                 if !shape.has("w") || !shape.has("h") {
-                    return Err(TetronError::Runtime("rect requires fields 'w', 'h'".into()));
+                    log_and_die!(1, "rect constructor requires fields 'w', 'h'");
                 }
             }
             "poly" => {
-                if let Some(TypedValue::Array(points)) = shape.get_typed("points")? {
+                if let Some(TypedValue::Array(points)) = shape.get_typed("points") {
                     if points.len() < 3 {
-                        return Err(TetronError::Runtime(
-                            "poly requires at least 3 points".into(),
-                        ));
+                        log_and_die!(1, "poly shape requires at least 3 points");
                     }
                 } else {
-                    return Err(TetronError::Runtime("poly requires 'points' array".into()));
+                    log_and_die!(1, "poly requires 'points' array");
                 }
             }
             "line" => {
-                if let Some(TypedValue::Array(points)) = shape.get_typed("points")? {
+                if let Some(TypedValue::Array(points)) = shape.get_typed("points") {
                     if points.len() != 2 {
-                        return Err(TetronError::Runtime(
-                            "line requires exactly 2 points".into(),
-                        ));
+                        log_and_die!(1, "line requires exactly 2 points");
                     }
                 } else {
-                    return Err(TetronError::Runtime("line requires 'points' array".into()));
+                    log_and_die!(1, "line requires 'points' array");
                 }
             }
             "circle" => {
                 if !shape.has("r") {
-                    return Err(TetronError::Runtime("circle requires field 'r'".into()));
+                    log_and_die!(1, "circle requires field 'r'");
                 }
             }
             _ => {
-                return Err(TetronError::Runtime(format!(
-                    "Invalid shape type {name} supplied"
-                )));
+                log_and_die!(1, "Invalid shape type {name} supplied");
             }
         }
-        Ok(shape)
+        shape
     };
 
     module.function("create", func).build()?.docs(docstring! {

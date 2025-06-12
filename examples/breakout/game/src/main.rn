@@ -12,32 +12,32 @@ const BRICK_COLOR = "#ff6600";
 
 fn Ball(scene, x, y) {
     let ball = scene.spawn();
-    ball.attach(shape::create("circle", #{ r: BALL_RADIUS })?);
-    ball.attach(physics::create(#{ collision: "simulate" })?);
-    ball.attach(transform::create(#{ pos: vec2(x, y) })?);
-    ball.attach(drawable::create(#{ color: "#ffffff" })?);
+    ball.attach(shape::create("circle", #{ r: BALL_RADIUS }));
+    ball.attach(physics::create(#{ collision: "simulate", mass: 1.0 }));
+    ball.attach(transform::create(#{ pos: vec2(x, y) }));
+    ball.attach(drawable::create(#{ color: "#ffffff" }));
     ball.tag("ball");
 }
 
 fn Wall(scene, x, y, w, h) {
     let wall = scene.spawn();
-    wall.attach(shape::create("rect", #{ w, h })?);
-    wall.attach(drawable::create(#{ color: WALL_COLOR })?);
-    wall.attach(physics::create(#{ collision: "immovable" })?);
-    wall.attach(transform::create(#{ pos: vec2(x, y) })?);
+    wall.attach(shape::create("rect", #{ w, h }));
+    wall.attach(drawable::create(#{ color: WALL_COLOR }));
+    wall.attach(physics::create(#{ collision: "immovable" }));
+    wall.attach(transform::create(#{ pos: vec2(x, y) }));
 }
 
 fn Brick(scene, x, y) {
     let brick = scene.spawn();
-    brick.attach(shape::create("rect", #{ w: BRICK_W, h: BRICK_H })?);
-    brick.attach(drawable::create(#{ color: BRICK_COLOR })?);
-    brick.attach(physics::create(#{ collision: "immovable" })?);
-    brick.attach(transform::create(#{ pos: vec2(x, y) })?);
+    brick.attach(shape::create("rect", #{ w: BRICK_W, h: BRICK_H }));
+    brick.attach(drawable::create(#{ color: BRICK_COLOR }));
+    brick.attach(physics::create(#{ collision: "immovable" }));
+    brick.attach(transform::create(#{ pos: vec2(x, y) }));
 }
 
 fn out_of_bounds_system(ctx) {
     for ball in ctx.query(#{ tag: ["ball"] }) {
-        let pos = ball.behaviour("tetron:physics")?.pos;
+        let pos = ball.behaviour("tetron:physics").pos;
         if (pos.y >= 480) {
             ctx.world.load_scene("game_over");
         }
@@ -46,7 +46,7 @@ fn out_of_bounds_system(ctx) {
 
 fn paddle_input_system(ctx) {
     for ent in ctx.query(#{ tag: ["paddle"] }) {
-        let b = ent.behaviour("tetron:physics")?;
+        let b = ent.behaviour("tetron:physics");
         if (input::is_down("Right")) {
             physics::apply_force(b, vec2(1, 0));
         } else if (input::is_down("Left")) {
@@ -60,14 +60,14 @@ fn paddle_input_system(ctx) {
 fn Paddle(scene, x, y) {
     let paddle = scene.spawn();
     paddle.tag("paddle");
-    paddle.attach(shape::create("rect", #{ w: PADDLE_W, h: PADDLE_H })?);
-    paddle.attach(drawable::create(#{ color: "#007cdf" })?);
-    paddle.attach(physics::create(#{ friction: 0.8, collision: "immovable" })?);
-    paddle.attach(transform::create(#{ pos: vec2(x, y) })?);
+    paddle.attach(shape::create("rect", #{ w: PADDLE_W, h: PADDLE_H }));
+    paddle.attach(drawable::create(#{ color: "#007cdf" }));
+    paddle.attach(physics::create(#{ friction: 0.8, collision: "immovable" }));
+    paddle.attach(transform::create(#{ pos: vec2(x, y) }));
 }
 
 fn setup_game_scene(world) {
-    let scene = world.scene("game", #{ bg: "#120321", gravity: vec2(0.0, 0.0) })?;
+    let scene = world.scene("game", #{ bg: "#120321", gravity: vec2(0.0, 0.0) });
     Paddle(scene, 320.0, 460.0);
     Ball(scene, 320.0, 240.0);
     Wall(scene, 0.0, 0.0, 640.0, 10.0);
@@ -86,17 +86,18 @@ fn setup_game_scene(world) {
 
 fn menu_input_system(ctx) {
     if (input::just_released("Space")) {
+        log::info!("space release detected");
         ctx.world.load_scene("game");
     }
 }
 
 fn setup_menu_scene(world) {
-    let scene = world.scene("menu", #{ bg: "#000000" })?;
+    let scene = world.scene("menu", #{ bg: "#000000" });
     let label = scene.spawn();
     label.attach(
-        drawable::create(#{ text: "Press SPACE to Start", font: #{ size: 24.0 }, color: "#ffffff" })?,
+        drawable::create(#{ text: "Press SPACE to Start", font: #{ size: 24.0 }, color: "#ffffff" }),
     );
-    label.attach(transform::create(#{ pos: vec2(240.0, 200.0) })?);
+    label.attach(transform::create(#{ pos: vec2(240.0, 200.0) }));
     scene.system("update", menu_input_system);
 }
 
@@ -107,21 +108,21 @@ fn game_over_input_system(ctx) {
 }
 
 fn game_over_scene(world) {
-    let scene = world.scene("game_over", #{ bg: "#120321" })?;
+    let scene = world.scene("game_over", #{ bg: "#120321" });
 
     let label = scene.spawn();
-    label.attach(transform::create(#{ pos: vec2(240.0, 200.0) })?);
-    label.attach(drawable::create(#{ text: "Game Over", font: #{ size: 32.0 }, color: "#ff0000" })?);
+    label.attach(transform::create(#{ pos: vec2(240.0, 200.0) }));
+    label.attach(drawable::create(#{ text: "Game Over", font: #{ size: 32.0 }, color: "#ff0000" }));
 
     let prompt = scene.spawn();
-    prompt.attach(drawable::create(#{ text: "Press R to Restart", font: #{ size: 20.0 }, color: "#ffffff" })?);
-    prompt.attach(transform::create(#{ pos: vec2(230.0, 260.0) })?);
+    prompt.attach(drawable::create(#{ text: "Press R to Restart", font: #{ size: 20.0 }, color: "#ffffff" }));
+    prompt.attach(transform::create(#{ pos: vec2(230.0, 260.0) }));
 
     scene.system("update", game_over_input_system);
 }
 
 pub fn begin(world) {
-    if let Some(identifier) = config::get(["identifier"])? {
+    if let Some(identifier) = config::get(["identifier"]) {
         log::info!(`Running example ${identifier}`);
     }
 

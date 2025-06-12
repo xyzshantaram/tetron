@@ -1,15 +1,7 @@
 use super::{behaviours::BehaviourFactory, scene::SceneRef};
-use crate::{
-    error::TetronError,
-    utils::{RuneString, typed_value::schema::Schema},
-};
+use crate::{error::TetronError, log_and_die, utils::typed_value::schema::Schema};
 use rune::{alloc::clone::TryClone, runtime::Object};
-use std::{
-    cell::RefCell,
-    collections::{HashMap, HashSet},
-    rc::Rc,
-    sync::Arc,
-};
+use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
 
 #[derive(rune::Any, Clone, Debug)]
 // ok to ignore warning, used in Rune
@@ -54,64 +46,55 @@ impl WorldRef {
     }
 
     #[rune::function(instance)]
-    fn define_behaviour(
-        &mut self,
-        name: &str,
-        schema: Schema,
-    ) -> Result<BehaviourFactoryRef, TetronError> {
-        let registry = &mut self.0.try_borrow_mut()?.behaviour_registry;
+    fn define_behaviour(&mut self, name: &str, schema: Schema) -> BehaviourFactoryRef {
+        let registry = &mut self
+            .0
+            .try_borrow_mut()
+            .expect("Engine bug: world lock poisoned")
+            .behaviour_registry;
         if name.starts_with("tetron:") {
-            Err(TetronError::Runtime(format!(
-                "Cannot define behaviour {name}: Behaviour names cannot start with 'tetron:'"
-            )))
+            log_and_die!(
+                1,
+                "Engine bug: Cannot define behaviour {name}: Behaviour names cannot start with 'tetron:'"
+            );
         } else if registry.contains_key(name) {
-            Err(TetronError::Runtime(format!(
-                "Cannot define behaviour {name}: a behaviour with the same name already exists"
-            )))
+            log_and_die!(
+                1,
+                "Engine bug: Cannot define behaviour {name}: a behaviour with the same name already exists"
+            );
         } else {
             let factory = BehaviourFactoryRef(Arc::new(BehaviourFactory::new(name, schema, false)));
             registry.insert(name.into(), factory.clone());
-            Ok(factory)
+            factory
         }
     }
 
     #[rune::function(instance)]
-    fn behaviour(&self, name: &str) -> Result<Option<BehaviourFactoryRef>, TetronError> {
-        Ok(self.0.try_borrow()?.behaviour_registry.get(name).cloned())
+    fn behaviour(&self, name: &str) -> Option<BehaviourFactoryRef> {
+        self.0.borrow().behaviour_registry.get(name).cloned()
     }
 
     #[rune::function(instance)]
-    fn scene(&self, name: &str, config: Object) -> Result<SceneRef, TetronError> {
+    fn scene(&self, name: &str, config: Object) -> SceneRef {
         let mut world = self.0.borrow_mut();
         if world.scenes.contains_key(name) {
-            return Err(TetronError::Runtime(format!(
-                "Could not create scene {name} - a scene with that name already exists"
-            )));
+            log_and_die!(
+                1,
+                "Engine bug: Could not create scene {name} - a scene with that name already exists"
+            );
         }
 
         let scene = SceneRef::new(self.clone(), config);
         world.scenes.insert(name.into(), scene.clone());
 
-        Ok(scene)
+        scene
     }
 
     #[rune::function(instance)]
-    fn load_scene(&self, name: &str) -> Result<(), TetronError> {
-        let scene = self
-            .0
-            .try_borrow()
-            .map_err(|e| TetronError::Runtime(format!("Could not load scene \"{name}\": {e}")))?
-            .scenes
-            .get(name)
-            .cloned()
-            .ok_or(TetronError::Runtime("Could not clone option".into()))?;
-
-        self.0
-            .try_borrow_mut()
-            .map_err(|e| TetronError::Runtime(format!("Could not load scene \"{name}\": {e}")))?
-            .current_scene = Some((name.to_owned(), scene));
-
-        Ok(())
+    fn load_scene(&self, name: &str) {
+        if let Some(scene) = self.0.borrow().scenes.get(name).cloned() {
+            self.0.borrow_mut().current_scene = Some((name.to_owned(), scene));
+        }
     }
 
     pub fn game_loop(&mut self, dt: f64) -> Result<(), TetronError> {

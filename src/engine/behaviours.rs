@@ -1,34 +1,12 @@
 use crate::{
-    error::TetronError,
-    system_log,
+    log_and_die,
     utils::{
         Registrable,
-        typed_value::{
-            TypedValue,
-            schema::{Schema, SchemaError},
-        },
+        typed_value::{TypedValue, schema::Schema},
     },
 };
 use rune::{ContextError, Module, Value, runtime::Object};
 use std::{cell::RefCell, collections::HashMap, rc::Rc, sync::Arc};
-
-enum BehaviourError {
-    InvalidProperty(String),
-    Validation(SchemaError),
-}
-
-impl From<BehaviourError> for TetronError {
-    fn from(value: BehaviourError) -> Self {
-        match value {
-            BehaviourError::InvalidProperty(name) => TetronError::Runtime(format!(
-                "tetron::behaviours: attempt to access invalid property {name}"
-            )),
-            BehaviourError::Validation(e) => {
-                TetronError::Runtime(format!("validation failed: {e:?}"))
-            }
-        }
-    }
-}
 
 #[derive(rune::Any, Debug)]
 pub struct Behaviour {
@@ -54,43 +32,44 @@ impl BehaviourFactory {
         }
     }
 
-    pub fn with_map(&self, map: HashMap<String, TypedValue>) -> Result<BehaviourRef, TetronError> {
-        let validated = self
-            .schema
-            .validate(&TypedValue::Object(map))
-            .inspect_err(|e| system_log!("BehaviourFactory::with_map validation error: {e:?}"))
-            .map_err(BehaviourError::Validation)?;
-        let name = if self.internal {
-            String::from("tetron:") + &self.name
+    pub fn with_map(&self, map: HashMap<String, TypedValue>) -> BehaviourRef {
+        if let Ok(validated) = self.schema.validate(&TypedValue::Object(map.clone())) {
+            let name = if self.internal {
+                String::from("tetron:") + &self.name
+            } else {
+                self.name.clone()
+            };
+            let config = match validated {
+                TypedValue::Object(obj) => obj,
+                _ => unreachable!(),
+            };
+            BehaviourRef::new(Behaviour {
+                name,
+                config,
+                schema: self.schema.clone(),
+            })
         } else {
-            self.name.clone()
-        };
-        let config = match validated {
-            TypedValue::Object(obj) => obj,
-            _ => unreachable!(),
-        };
-        Ok(BehaviourRef::new(Behaviour {
-            name,
-            config,
-            schema: self.schema.clone(),
-        }))
+            log_and_die!(
+                1,
+                "Could not validate {map:?} against schema {:?}",
+                self.schema
+            )
+        }
     }
 
     #[rune::function(keep)]
-    pub fn create(&self, config: &Object) -> Result<BehaviourRef, TetronError> {
+    pub fn create(&self, config: &Object) -> BehaviourRef {
         let mut map = HashMap::<String, TypedValue>::new();
         for key in config.keys() {
             if let Some(val) = config.get(key) {
                 map.insert(
                     key.as_str().to_string(),
-                    val.try_into().inspect_err(|e| {
-                        system_log!("BehaviourFactory::create (key {key}) error: {e:?}")
-                    })?,
+                    val.try_into()
+                        .expect("Engine bug: failed to convert rune value to typed value"),
                 );
             }
         }
         self.with_map(map)
-            .inspect_err(|e| system_log!("BehaviourFactory::create -> with_map error: {e:?}"))
     }
 
     pub fn schema(&self) -> Arc<Schema> {
@@ -99,55 +78,43 @@ impl BehaviourFactory {
 }
 
 impl Behaviour {
-    #[allow(dead_code)] // used on the Rune side
-    fn check_field(&self, field: &str) -> Result<(), TetronError> {
+    fn check_field(&self, field: &str) {
         match *self.schema {
             Schema::Object { ref fields } => {
                 if !fields.contains_key(field) {
-                    Err(BehaviourError::InvalidProperty(field.to_owned()).into())
-                } else {
-                    Ok(())
+                    log_and_die!(1, "Invalid field {field} accessed on behaviour")
                 }
             }
-            _ => Err(TetronError::Runtime(
-                "Behaviour schema is not object".to_string(),
-            )),
+            _ => log_and_die!(
+                1,
+                "Engine bug: Behaviour schema is not object! This should never happen."
+            ),
         }
     }
 
-    #[allow(dead_code)]
-    fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
-        self.check_field(field)
-            .inspect_err(|e| system_log!("Behaviour::set check_field error: {e:?}"))?;
+    fn set(&mut self, field: &str, value: Value) {
+        self.check_field(field);
         self.config.insert(
             field.into(),
             TryInto::try_into(&value)
-                .inspect_err(|e| system_log!("Behaviour::set TryInto error: {e:?}"))?,
+                .expect("engine bug: could not convert rune Value into TypedValue"),
         );
-        Ok(())
     }
 
-    #[allow(dead_code)]
-    fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
-        self.check_field(field)
-            .inspect_err(|e| system_log!("Behaviour::get check_field error: {e:?}"))?;
-        if let Some(val) = self.config.get(field) {
-            Ok(Some(val.try_into().inspect_err(|e| {
-                system_log!("Behaviour::get TryInto error: {e:?} (field: {field})")
-            })?))
-        } else {
-            Ok(None)
-        }
+    fn get(&self, field: &str) -> Option<Value> {
+        self.config.get(field).map(|val| {
+            val.try_into().unwrap_or_else(|_| {
+                panic!(
+                    "Could not convert value of {field} on behaviour {} ",
+                    self.name
+                )
+            })
+        })
     }
 
-    fn get_typed(&self, field: &str) -> Result<Option<TypedValue>, TetronError> {
-        self.check_field(field)
-            .inspect_err(|e| system_log!("Behaviour::get_typed check_field error: {e:?}"))?;
-        if let Some(val) = self.config.get(field) {
-            Ok(Some(val.to_owned()))
-        } else {
-            Ok(None)
-        }
+    fn get_typed(&self, field: &str) -> Option<TypedValue> {
+        self.check_field(field);
+        self.config.get(field).cloned()
     }
 
     fn name(&self) -> String {
@@ -191,12 +158,12 @@ impl BehaviourRef {
     }
 
     #[rune::function(instance, keep, protocol = SET)]
-    pub fn set(&mut self, field: &str, value: Value) -> Result<(), TetronError> {
-        self.0.borrow_mut().set(field, value)
+    pub fn set(&mut self, field: &str, value: Value) {
+        self.0.borrow_mut().set(field, value);
     }
 
     #[rune::function(instance, keep, protocol = GET)]
-    pub fn get(&self, field: &str) -> Result<Option<Value>, TetronError> {
+    pub fn get(&self, field: &str) -> Option<Value> {
         self.0.borrow().get(field)
     }
 
@@ -204,7 +171,7 @@ impl BehaviourRef {
         self.0.borrow().config.contains_key(field)
     }
 
-    pub fn get_typed(&self, field: &str) -> Result<Option<TypedValue>, TetronError> {
+    pub fn get_typed(&self, field: &str) -> Option<TypedValue> {
         self.0.borrow().get_typed(field)
     }
 }

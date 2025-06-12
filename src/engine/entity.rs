@@ -1,5 +1,5 @@
 use super::behaviours::BehaviourRef;
-use crate::{error::TetronError, utils::Registrable};
+use crate::{log_and_die, utils::Registrable};
 use rune::{ContextError, Module};
 use std::{
     cell::RefCell,
@@ -45,19 +45,19 @@ impl EntityRef {
     }
 
     #[rune::function(keep)]
-    pub fn attach(&mut self, behaviour: BehaviourRef) -> Result<(), TetronError> {
-        let behaviours = &mut self.0.try_borrow_mut()?.behaviours;
+    pub fn attach(&mut self, behaviour: BehaviourRef) {
+        let behaviours = &mut self
+            .0
+            .try_borrow_mut()
+            .expect("Engine bug: entity lock poisoned")
+            .behaviours;
         let name = behaviour.name();
 
         #[allow(clippy::map_entry)]
         if behaviours.contains_key(&name) {
-            Err(TetronError::Runtime(format!(
-                "Cannot insert behaviour {}: already exists",
-                name
-            )))
+            log_and_die!(1, "Cannot insert behaviour {name}: already exists");
         } else {
             behaviours.insert(name, behaviour);
-            Ok(())
         }
     }
 

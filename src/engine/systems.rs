@@ -67,19 +67,20 @@ impl Ctx {
     }
 
     #[rune::function(keep)]
-    pub fn query(&self, query: Object) -> Result<Vec<EntityRef>, TetronError> {
-        let parse = |key| -> Result<HashSet<String>, TetronError> {
-            Ok(query
+    pub fn query(&self, query: Object) -> Vec<EntityRef> {
+        let parse = |key| -> HashSet<String> {
+            query
                 .get(key)
                 .map(vec_str_to_hashset)
-                .transpose()?
-                .unwrap_or_default())
+                .transpose()
+                .expect("Engine bug: failed to convert query parameter")
+                .unwrap_or_default()
         };
 
-        let tags = parse("tag")?;
-        let behaviours = parse("b")?;
+        let tags = parse("tag");
+        let behaviours = parse("b");
 
-        self.query_with_sets(tags, behaviours)
+        self.query_with_sets(tags, behaviours).expect("Engine bug: failed to execute query")
     }
 }
 

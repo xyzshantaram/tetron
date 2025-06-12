@@ -166,7 +166,7 @@ impl Game {
                 // Get color from drawable (fallback white)
                 let color = parse_hex_color(
                     &drawable
-                        .get_typed("color")?
+                        .get_typed("color")
                         .and_then(|v| match v {
                             TypedValue::String(s) => Some(s),
                             _ => None,
@@ -175,21 +175,16 @@ impl Game {
                     Color::WHITE,
                 );
                 // Parse position from transform
-                let pos: Option<Vec2> =
-                    transform
-                        .get_typed("pos")
-                        .ok()
-                        .flatten()
-                        .and_then(|v| match v {
-                            TypedValue::Vector(v2) => Some(v2),
-                            _ => None,
-                        });
+                let pos: Option<Vec2> = transform.get_typed("pos").and_then(|v| match v {
+                    TypedValue::Vector(v2) => Some(v2),
+                    _ => None,
+                });
                 let pos = pos.unwrap_or(Vec2::ZERO);
 
                 // Draw text if present
-                if let Some(TypedValue::String(txt)) = drawable.get_typed("text").ok().flatten() {
+                if let Some(TypedValue::String(txt)) = drawable.get_typed("text") {
                     // font config (optional)
-                    let font_conf = drawable.get_typed("font").ok().flatten();
+                    let font_conf = drawable.get_typed("font");
                     let (font_name, font_size) = if let Some(TypedValue::Object(map)) = &font_conf {
                         (
                             map.get("face").and_then(|v| {
@@ -214,28 +209,26 @@ impl Game {
                     continue;
                 }
                 // TODO: Sprites and animations not implemented
-                if drawable.get_typed("sprite").ok().flatten().is_some() {
+                if drawable.get_typed("sprite").is_some() {
                     todo!("Sprite rendering not implemented!");
                 }
-                if drawable.get_typed("anim").ok().flatten().is_some() {
+                if drawable.get_typed("anim").is_some() {
                     todo!("Anim rendering not implemented!");
                 }
                 // Otherwise, try shape
                 if let Some(shape) = entity.behaviour("tetron:shape") {
-                    if let Some(TypedValue::String(sh_type)) =
-                        shape.get_typed("type").ok().flatten()
-                    {
+                    if let Some(TypedValue::String(sh_type)) = shape.get_typed("type") {
                         match sh_type.as_str() {
                             "rect" => {
                                 let w = shape
-                                    .get_typed("w")?
+                                    .get_typed("w")
                                     .and_then(|v| match v {
                                         TypedValue::Number(f) => Some(f),
                                         _ => None,
                                     })
                                     .unwrap_or(1.0);
                                 let h = shape
-                                    .get_typed("h")?
+                                    .get_typed("h")
                                     .and_then(|v| match v {
                                         TypedValue::Number(f) => Some(f),
                                         _ => None,
@@ -246,8 +239,6 @@ impl Game {
                             "circle" => {
                                 let r = shape
                                     .get_typed("r")
-                                    .ok()
-                                    .flatten()
                                     .and_then(|v| match v {
                                         TypedValue::Number(f) => Some(f),
                                         _ => None,
@@ -256,9 +247,7 @@ impl Game {
                                 self.sdl.draw_circle(pos, r, color, true)?;
                             }
                             "poly" => {
-                                if let Some(TypedValue::Array(points)) =
-                                    shape.get_typed("points").ok().flatten()
-                                {
+                                if let Some(TypedValue::Array(points)) = shape.get_typed("points") {
                                     let points: Vec<Vec2> = points
                                         .into_iter()
                                         .filter_map(|val| match val {
@@ -272,9 +261,7 @@ impl Game {
                                 }
                             }
                             "line" => {
-                                if let Some(TypedValue::Array(points)) =
-                                    shape.get_typed("points").ok().flatten()
-                                {
+                                if let Some(TypedValue::Array(points)) = shape.get_typed("points") {
                                     let vv: Vec<Vec2> = points
                                         .into_iter()
                                         .filter_map(|val| match val {
@@ -326,6 +313,7 @@ impl Game {
             let now = Instant::now();
             let delta = now.duration_since(last_frame).as_secs_f64();
             last_frame = now;
+
             for event in self.sdl.events.poll_iter() {
                 self.input.write()?.update(&event);
                 match event {
@@ -345,6 +333,7 @@ impl Game {
             self.sdl.canvas.clear();
             self.draw(delta)?;
             self.sdl.canvas.present();
+
             self.input.write()?.next_frame();
         }
 

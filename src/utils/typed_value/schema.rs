@@ -1,9 +1,12 @@
 use super::TypedValue;
 use crate::utils::Registrable;
 use rune::{ContextError, Module, Value};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Display},
+};
 
-#[derive(Debug, Clone, rune::Any)]
+#[derive(Clone, rune::Any)]
 pub enum Schema {
     Null,
     Bool,
@@ -283,6 +286,209 @@ pub enum SchemaError {
     ArrayMinViolation { min: usize, found: usize },
     ArrayMaxViolation { max: usize, found: usize },
     Validation(String),
+}
+
+fn format_typed_value_for_display(value: &TypedValue) -> String {
+    format!("{:?}", value) // Assumes TypedValue has a Debug implementation
+}
+
+// Custom Debug implementation for Schema (one-line)
+impl fmt::Debug for Schema {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Schema::Null => write!(f, "Schema::Null"),
+            Schema::Bool => write!(f, "Schema::Bool"),
+            Schema::Number => write!(f, "Schema::Number"),
+            Schema::String => write!(f, "Schema::String"),
+            Schema::Vec2 => write!(f, "Schema::Vec2"),
+            Schema::Array { item, min, max } => f
+                .debug_struct("Schema::Array")
+                .field("item", item)
+                .field("min", min)
+                .field("max", max)
+                .finish(),
+            Schema::Object { fields } => {
+                // Collect and sort keys for stable debug output
+                let mut keys: Vec<&String> = fields.keys().collect();
+                keys.sort();
+                f.debug_struct("Schema::Object")
+                    .field("keys", &keys)
+                    .finish()
+            }
+            Schema::Optional(schema) => f.debug_tuple("Schema::Optional").field(schema).finish(),
+            Schema::Default { schema, default } => {
+                f.debug_struct("Schema::Default")
+                    .field("schema", schema)
+                    .field("default", default) // Relies on TypedValue's Debug
+                    .finish()
+            }
+        }
+    }
+}
+
+// Pretty-printed Display implementation for Schema
+impl fmt::Display for Schema {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Initial call to the recursive helper
+        self.fmt_recursive(f, 0, "")
+    }
+}
+
+impl Schema {
+    // Recursive helper for pretty-printing Schema
+    // This method is part of the Schema impl block
+    fn fmt_recursive(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+        indent_level: usize,
+        suffix: &str,
+    ) -> fmt::Result {
+        let leading_spaces = "  ".repeat(indent_level);
+        match self {
+            Schema::Null => write!(f, "{}Null{}", leading_spaces, suffix),
+            Schema::Bool => write!(f, "{}Bool{}", leading_spaces, suffix),
+            Schema::Number => write!(f, "{}Number{}", leading_spaces, suffix),
+            Schema::String => write!(f, "{}String{}", leading_spaces, suffix),
+            Schema::Vec2 => write!(f, "{}Vec2{}", leading_spaces, suffix),
+            Schema::Array { item, min, max } => {
+                let mut constraints = Vec::new();
+                if let Some(m) = min {
+                    constraints.push(format!("min items: {}", m));
+                }
+                if let Some(m) = max {
+                    constraints.push(format!("max items: {}", m));
+                }
+                let constraints_str = if !constraints.is_empty() {
+                    format!(" ({})", constraints.join(", "))
+                } else {
+                    String::new()
+                };
+
+                // For Array, "Array of:" is on one line, then the item schema is indented on the next.
+                writeln!(
+                    f,
+                    "{}Array of:{}{}",
+                    leading_spaces, constraints_str, suffix
+                )?;
+                item.fmt_recursive(f, indent_level + 1, "") // Item schema starts on a new indented line
+            }
+            Schema::Object { fields } => {
+                if fields.is_empty() {
+                    writeln!(f, "{}Object (empty){}", leading_spaces, suffix)?;
+                } else {
+                    writeln!(f, "{}Object with fields:{}", leading_spaces, suffix)?;
+                    let mut sorted_fields: Vec<_> = fields.iter().collect();
+                    sorted_fields.sort_by_key(|(k, _)| *k); // Sort for stable output
+
+                    for (i, (key, field_schema)) in sorted_fields.iter().enumerate() {
+                        let field_indent_level = indent_level + 1;
+                        let field_leading_spaces = "  ".repeat(field_indent_level);
+
+                        let mut field_attributes = Vec::new();
+                        if field_schema.optional {
+                            field_attributes.push("Optional".into());
+                        }
+                        if let Some(def_val) = &field_schema.default {
+                            field_attributes.push(format!(
+                                "Default: {}",
+                                format_typed_value_for_display(def_val)
+                            ));
+                        }
+                        let attributes_suffix = if !field_attributes.is_empty() {
+                            format!(" ({})", field_attributes.join(", "))
+                        } else {
+                            String::new()
+                        };
+
+                        // Field name part a
+                        write!(f, "{}\"{}\": ", field_leading_spaces, key)?;
+                        // The schema for the field, potentially with attributes suffix.
+                        // It will decide if it needs a newline (e.g. if it's an Array or Object).
+                        field_schema
+                            .schema
+                            .fmt_recursive(f, 0, &attributes_suffix)?; // Start with 0 relative indent for the type itself
+
+                        // Add a newline after each field, unless it's the last one and the parent won't add one.
+                        // The typical structure is that writeln! is used by containers, so simple types don't need to add their own.
+                        // The loop for object fields should ensure each field ends on its own line.
+                        if i < sorted_fields.len() - 1
+                            || matches!(
+                                field_schema.schema,
+                                Schema::Object { .. }
+                                    | Schema::Array { .. }
+                                    | Schema::Optional(_)
+                                    | Schema::Default { .. }
+                            )
+                        {
+                            // If the field schema itself was a container, it already added a newline.
+                            // If it was a simple type, we add the newline here.
+                            if !matches!(
+                                field_schema.schema,
+                                Schema::Object { .. }
+                                    | Schema::Array { .. }
+                                    | Schema::Optional(_)
+                                    | Schema::Default { .. }
+                            ) {
+                                writeln!(f)?;
+                            }
+                        } else {
+                            // Last simple item, no newline, parent handles it. Or it was a container that handled its own.
+                            // Actually, for consistency, always writeln after a field's schema has been printed.
+                            writeln!(f)?;
+                        }
+                    }
+                }
+                Ok(())
+            }
+            Schema::Optional(sub_schema) => {
+                writeln!(f, "{}Optional:{}", leading_spaces, suffix)?;
+                sub_schema.fmt_recursive(f, indent_level + 1, "")
+            }
+            Schema::Default {
+                schema: sch,
+                default,
+            } => {
+                writeln!(
+                    f,
+                    "{}Default (value: {}):{}",
+                    leading_spaces,
+                    format_typed_value_for_display(default),
+                    suffix
+                )?;
+                sch.fmt_recursive(f, indent_level + 1, "")
+            }
+        }
+    }
+}
+
+impl Display for SchemaError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SchemaError::TypeMismatch { expected, found } => {
+                write!(
+                    f,
+                    "Type mismatch: expected '{}', found '{}'",
+                    expected, found
+                )
+            }
+            SchemaError::MissingField(field) => write!(f, "Missing field: '{}'", field),
+            SchemaError::ArrayMinViolation { min, found } => {
+                write!(
+                    f,
+                    "Array length violation: minimum is {}, found {}",
+                    min, found
+                )
+            }
+            SchemaError::ArrayMaxViolation { max, found } => {
+                write!(
+                    f,
+                    "Array length violation: maximum is {}, found {}",
+                    max, found
+                )
+            }
+            SchemaError::Validation(msg) => write!(f, "Validation error: {}", msg),
+        }
+    }
 }
 
 #[cfg(test)]
