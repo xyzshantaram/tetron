@@ -13,6 +13,8 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
         .optional_field("color", Schema::string(), None)
         .optional_field("text", Schema::string(), None)
         .optional_field("font", font_schema, None)
+        .optional_field("sprite", Schema::string(), None)
+        .optional_field("anim", Schema::string(), None)
         .build();
 
     let drawable = BehaviourFactory::new("drawable", schema, true);
