@@ -17,9 +17,7 @@ fn register_factory(module: &mut Module) -> Result<(), ContextError> {
 
     let drawable = BehaviourFactory::new("drawable", schema, true);
 
-    let func = move |obj: &Object| -> BehaviourRef {
-        drawable.create(obj)
-    };
+    let func = move |obj: &Object| -> BehaviourRef { drawable.create(obj) };
 
     module.function("create", func).build()?.docs(docstring! {
         /// Create a new drawable behaviour.

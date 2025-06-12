@@ -80,7 +80,8 @@ impl Ctx {
         let tags = parse("tag");
         let behaviours = parse("b");
 
-        self.query_with_sets(tags, behaviours).expect("Engine bug: failed to execute query")
+        self.query_with_sets(tags, behaviours)
+            .expect("Engine bug: failed to execute query")
     }
 }
 
