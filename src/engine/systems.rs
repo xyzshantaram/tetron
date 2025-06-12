@@ -21,11 +21,7 @@ fn vec_str_to_hashset(v: &Value) -> Result<HashSet<String>, TetronError> {
     if let Ok(vec) = v.borrow_ref::<rune::runtime::Vec>() {
         let mut set = HashSet::<String>::new();
         for item in vec.iter() {
-            if item.type_id() != TypeId::of::<RuneString>() {
-                return Err(TetronError::Runtime("invalid item {item:?}".into()));
-            } else {
-                set.insert(item.borrow_string_ref()?.to_string());
-            }
+            set.insert(item.borrow_string_ref()?.to_string());
         }
         Ok(set)
     } else {
